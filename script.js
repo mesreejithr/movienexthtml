@@ -10,6 +10,7 @@ const moviesGrid = document.getElementById('movies-grid');
 const languageSelect = document.getElementById('language-select');
 const searchInput = document.getElementById('search');
 const searchBtn = document.getElementById('search-btn');
+const autocompleteResults = document.getElementById('autocomplete-results');
 const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
 const currentPageSpan = document.getElementById('current-page');
@@ -27,6 +28,18 @@ const ottCurrentPageSpan = document.getElementById('ott-current-page');
 const ottModal = document.getElementById('ott-modal');
 const ottModalDetails = document.getElementById('ott-modal-details');
 const ottCloseModal = document.querySelector('.ott-close');
+
+// DOM Elements - Top Rated Section
+const topRatedGrid = document.getElementById('top-rated-grid');
+const topRatedPrevPageBtn = document.getElementById('top-rated-prev-page');
+const topRatedNextPageBtn = document.getElementById('top-rated-next-page');
+const topRatedCurrentPageSpan = document.getElementById('top-rated-current-page');
+
+// DOM Elements - Coming Soon Section
+const comingSoonGrid = document.getElementById('coming-soon-grid');
+const comingSoonPrevPageBtn = document.getElementById('coming-soon-prev-page');
+const comingSoonNextPageBtn = document.getElementById('coming-soon-next-page');
+const comingSoonCurrentPageSpan = document.getElementById('coming-soon-current-page');
 
 // DOM Elements - Tabs
 const moviesTab = document.getElementById('movies-tab');
@@ -46,6 +59,14 @@ let currentOttPage = 1;
 let totalOttPages = 1;
 let currentContentType = 'all';
 let currentOttProvider = 'all';
+
+// State variables - Top Rated
+let currentTopRatedPage = 1;
+let totalTopRatedPages = 1;
+
+// State variables - Coming Soon
+let currentComingSoonPage = 1;
+let totalComingSoonPages = 1;
 
 // Language codes to full names mapping
 const languageNames = {
@@ -75,8 +96,10 @@ const ottProviders = {
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
-    loadMovies();
     loadOttContent();
+    loadMovies();
+    loadTopRatedContent();
+    loadComingSoonContent();
     setupEventListeners();
 });
 
@@ -90,6 +113,50 @@ function setupEventListeners() {
             handleSearch();
         }
     });
+    
+    // Add input event for autocomplete
+    searchInput.addEventListener('input', debounce(handleAutocomplete, 300));
+    
+    // Add keyboard navigation for autocomplete
+    searchInput.addEventListener('keydown', handleAutocompleteKeydown);
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !autocompleteResults.contains(e.target)) {
+            autocompleteResults.style.display = 'none';
+        }
+    });
+    
+    // Category links
+    const categoryLinks = document.querySelectorAll('.category-link');
+    categoryLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            // If it's a placeholder link (Coming Soon or Top Rated)
+            if (this.getAttribute('href') === '#') {
+                e.preventDefault();
+                alert('This feature will be available soon!');
+                return;
+            }
+            
+            // Update active state
+            categoryLinks.forEach(l => l.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Smooth scroll to section
+            if (this.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    });
+    
     prevPageBtn.addEventListener('click', goToPrevPage);
     nextPageBtn.addEventListener('click', goToNextPage);
     closeModal.addEventListener('click', () => {
@@ -114,6 +181,10 @@ function setupEventListeners() {
             ottModal.style.display = 'none';
         }
     });
+    
+    // Coming Soon section event listeners
+    comingSoonPrevPageBtn.addEventListener('click', goToComingSoonPrevPage);
+    comingSoonNextPageBtn.addEventListener('click', goToComingSoonNextPage);
 }
 
 // Handle language filter change
@@ -121,8 +192,13 @@ function handleLanguageChange() {
     currentLanguage = languageSelect.value;
     currentPage = 1;
     currentOttPage = 1;
+    currentComingSoonPage = 1; // Reset Coming Soon page to 1
+    
+    // Reload all content sections with the new language filter
     loadMovies();
     loadOttContent();
+    loadTopRatedContent();
+    loadComingSoonContent();
 }
 
 // Handle search
@@ -132,11 +208,21 @@ function handleSearch() {
         searchQuery = query;
         isSearching = true;
         currentPage = 1;
+        currentOttPage = 1;
+        
+        // Load both movies and OTT content with the search query
         loadMovies();
+        loadOttContent();
+        
+        // Scroll to top of the page
+        window.scrollTo(0, 0);
     } else {
         isSearching = false;
         searchQuery = '';
+        
+        // Reset and load both sections
         loadMovies();
+        loadOttContent();
     }
 }
 
@@ -392,7 +478,7 @@ function showNoResults() {
     moviesGrid.innerHTML = `
         <div class="no-results">
             <i class="fas fa-film"></i>
-            <p>No movies found. Try a different search or language filter.</p>
+            <p>${isSearching ? 'No theatre movies found matching your search. Try different keywords or filters.' : 'No theatre movies found. Try a different language filter.'}</p>
         </div>
     `;
 }
@@ -445,107 +531,201 @@ async function loadOttContent() {
     
     try {
         const today = getTodayDate();
+        let movieUrl, tvUrl;
         
-        // Prepare parameters for API calls
-        let movieParams = new URLSearchParams({
+        // Prepare common parameters
+        let commonParams = {
             api_key: API_KEY,
             page: currentOttPage,
             region: 'IN',
-            with_origin_country: 'IN',
-            'release_date.lte': today,
-            sort_by: 'release_date.desc',
-            with_watch_monetization_types: 'flatrate', // Only include content available for streaming
-            watch_region: 'IN', // Specify India as the watch region
-            append_to_response: 'watch/providers' // Include watch provider information
-        });
+            watch_region: 'IN'
+        };
         
-        let tvParams = new URLSearchParams({
-            api_key: API_KEY,
-            page: currentOttPage,
-            region: 'IN',
-            with_origin_country: 'IN',
-            sort_by: 'first_air_date.desc',
-            with_watch_monetization_types: 'flatrate', // Only include content available for streaming
-            watch_region: 'IN', // Specify India as the watch region
-            append_to_response: 'watch/providers' // Include watch provider information
-        });
-        
-        // Add OTT provider filter if selected
-        if (currentOttProvider !== 'all') {
-            movieParams.append('with_watch_providers', currentOttProvider);
-            tvParams.append('with_watch_providers', currentOttProvider);
-        } else {
-            // If no specific provider is selected, include all major OTT providers
-            const allProviders = Object.keys(ottProviders).join('|');
-            movieParams.append('with_watch_providers', allProviders);
-            tvParams.append('with_watch_providers', allProviders);
-        }
-        
-        // Add language filter if selected
-        if (currentLanguage !== 'all') {
-            movieParams.append('with_original_language', currentLanguage);
-            tvParams.append('with_original_language', currentLanguage);
-        }
-        
-        // Fetch data based on content type
-        let movieData = { results: [] };
-        let tvData = { results: [] };
-        
-        if (currentContentType === 'all' || currentContentType === 'movie') {
-            const movieResponse = await fetch(`${BASE_URL}/discover/movie?${movieParams}`);
-            movieData = await movieResponse.json();
-        }
-        
-        if (currentContentType === 'all' || currentContentType === 'tv') {
-            const tvResponse = await fetch(`${BASE_URL}/discover/tv?${tvParams}`);
-            tvData = await tvResponse.json();
-        }
-        
-        // Combine results
-        let combinedResults = [
-            ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
-            ...tvData.results.map(item => ({ ...item, content_type: 'tv' }))
-        ];
-        
-        // Fetch watch providers for each item
-        const resultsWithProviders = await Promise.all(
-            combinedResults.map(async (item) => {
-                try {
-                    const contentType = item.content_type;
-                    const endpoint = contentType === 'movie' ? 'movie' : 'tv';
-                    const response = await fetch(`${BASE_URL}/${endpoint}/${item.id}/watch/providers?api_key=${API_KEY}`);
-                    const data = await response.json();
-                    
-                    // Add watch providers to the item if available for India
-                    if (data.results && data.results.IN && data.results.IN.flatrate) {
-                        return { ...item, watch_providers: data.results.IN.flatrate };
+        // If searching, use search endpoints
+        if (isSearching) {
+            movieUrl = `${BASE_URL}/search/movie`;
+            tvUrl = `${BASE_URL}/search/tv`;
+            
+            // Add search query
+            let movieParams = new URLSearchParams({
+                ...commonParams,
+                query: searchQuery,
+                include_adult: false
+            });
+            
+            let tvParams = new URLSearchParams({
+                ...commonParams,
+                query: searchQuery,
+                include_adult: false
+            });
+            
+            // Add language filter if selected
+            if (currentLanguage !== 'all') {
+                movieParams.append('with_original_language', currentLanguage);
+                tvParams.append('with_original_language', currentLanguage);
+            }
+            
+            // Fetch search results
+            let movieData = { results: [] };
+            let tvData = { results: [] };
+            
+            if (currentContentType === 'all' || currentContentType === 'movie') {
+                const movieResponse = await fetch(`${movieUrl}?${movieParams}`);
+                movieData = await movieResponse.json();
+            }
+            
+            if (currentContentType === 'all' || currentContentType === 'tv') {
+                const tvResponse = await fetch(`${tvUrl}?${tvParams}`);
+                tvData = await tvResponse.json();
+            }
+            
+            // Combine results
+            let combinedResults = [
+                ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
+                ...tvData.results.map(item => ({ ...item, content_type: 'tv' }))
+            ];
+            
+            // Filter for OTT content by fetching watch providers
+            const resultsWithProviders = await Promise.all(
+                combinedResults.map(async (item) => {
+                    try {
+                        const contentType = item.content_type;
+                        const endpoint = contentType === 'movie' ? 'movie' : 'tv';
+                        const response = await fetch(`${BASE_URL}/${endpoint}/${item.id}/watch/providers?api_key=${API_KEY}`);
+                        const data = await response.json();
+                        
+                        // Add watch providers to the item if available for India
+                        if (data.results && data.results.IN && data.results.IN.flatrate) {
+                            return { ...item, watch_providers: data.results.IN.flatrate };
+                        }
+                        return { ...item, watch_providers: [] };
+                    } catch (error) {
+                        console.error(`Error fetching watch providers for ${item.id}:`, error);
+                        return { ...item, watch_providers: [] };
                     }
-                    return item;
-                } catch (error) {
-                    console.error(`Error fetching watch providers for ${item.id}:`, error);
-                    return item;
-                }
-            })
-        );
-        
-        // Sort by release/air date (newest first)
-        resultsWithProviders.sort((a, b) => {
-            const dateA = new Date(a.release_date || a.first_air_date || '2000-01-01');
-            const dateB = new Date(b.release_date || b.first_air_date || '2000-01-01');
-            return dateB - dateA;
-        });
-        
-        if (resultsWithProviders.length > 0) {
-            displayOttContent(resultsWithProviders);
+                })
+            );
             
-            // Calculate total pages (use the max of both responses)
-            const movieTotalPages = movieData.total_pages || 0;
-            const tvTotalPages = tvData.total_pages || 0;
-            totalOttPages = Math.min(Math.max(movieTotalPages, tvTotalPages), 500);
+            // Filter to only include items with OTT providers
+            const ottContent = resultsWithProviders.filter(item => 
+                item.watch_providers && item.watch_providers.length > 0
+            );
             
-            updateOttPagination();
+            // Sort by release/air date (newest first)
+            ottContent.sort((a, b) => {
+                const dateA = new Date(a.release_date || a.first_air_date || '2000-01-01');
+                const dateB = new Date(b.release_date || b.first_air_date || '2000-01-01');
+                return dateB - dateA;
+            });
+            
+            if (ottContent.length > 0) {
+                displayOttContent(ottContent);
+                
+                // Calculate total pages based on results
+                totalOttPages = Math.ceil(ottContent.length / 20); // Assuming 20 items per page
+                totalOttPages = Math.max(totalOttPages, 1); // At least 1 page
+                
+                updateOttPagination();
+            } else {
+                showNoOttResults();
+            }
         } else {
-            showNoOttResults();
+            // Use discover endpoints for normal browsing
+            // Prepare parameters for API calls
+            let movieParams = new URLSearchParams({
+                ...commonParams,
+                with_origin_country: 'IN',
+                'release_date.lte': today,
+                sort_by: 'release_date.desc',
+                with_watch_monetization_types: 'flatrate', // Only include content available for streaming
+                append_to_response: 'watch/providers' // Include watch provider information
+            });
+            
+            let tvParams = new URLSearchParams({
+                ...commonParams,
+                with_origin_country: 'IN',
+                sort_by: 'first_air_date.desc',
+                with_watch_monetization_types: 'flatrate', // Only include content available for streaming
+                append_to_response: 'watch/providers' // Include watch provider information
+            });
+            
+            // Add OTT provider filter if selected
+            if (currentOttProvider !== 'all') {
+                movieParams.append('with_watch_providers', currentOttProvider);
+                tvParams.append('with_watch_providers', currentOttProvider);
+            } else {
+                // If no specific provider is selected, include all major OTT providers
+                const allProviders = Object.keys(ottProviders).join('|');
+                movieParams.append('with_watch_providers', allProviders);
+                tvParams.append('with_watch_providers', allProviders);
+            }
+            
+            // Add language filter if selected
+            if (currentLanguage !== 'all') {
+                movieParams.append('with_original_language', currentLanguage);
+                tvParams.append('with_original_language', currentLanguage);
+            }
+            
+            // Fetch data based on content type
+            let movieData = { results: [] };
+            let tvData = { results: [] };
+            
+            if (currentContentType === 'all' || currentContentType === 'movie') {
+                const movieResponse = await fetch(`${BASE_URL}/discover/movie?${movieParams}`);
+                movieData = await movieResponse.json();
+            }
+            
+            if (currentContentType === 'all' || currentContentType === 'tv') {
+                const tvResponse = await fetch(`${BASE_URL}/discover/tv?${tvParams}`);
+                tvData = await tvResponse.json();
+            }
+            
+            // Combine results
+            let combinedResults = [
+                ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
+                ...tvData.results.map(item => ({ ...item, content_type: 'tv' }))
+            ];
+            
+            // Fetch watch providers for each item
+            const resultsWithProviders = await Promise.all(
+                combinedResults.map(async (item) => {
+                    try {
+                        const contentType = item.content_type;
+                        const endpoint = contentType === 'movie' ? 'movie' : 'tv';
+                        const response = await fetch(`${BASE_URL}/${endpoint}/${item.id}/watch/providers?api_key=${API_KEY}`);
+                        const data = await response.json();
+                        
+                        // Add watch providers to the item if available for India
+                        if (data.results && data.results.IN && data.results.IN.flatrate) {
+                            return { ...item, watch_providers: data.results.IN.flatrate };
+                        }
+                        return item;
+                    } catch (error) {
+                        console.error(`Error fetching watch providers for ${item.id}:`, error);
+                        return item;
+                    }
+                })
+            );
+            
+            // Sort by release/air date (newest first)
+            resultsWithProviders.sort((a, b) => {
+                const dateA = new Date(a.release_date || a.first_air_date || '2000-01-01');
+                const dateB = new Date(b.release_date || b.first_air_date || '2000-01-01');
+                return dateB - dateA;
+            });
+            
+            if (resultsWithProviders.length > 0) {
+                displayOttContent(resultsWithProviders);
+                
+                // Calculate total pages (use the max of both responses)
+                const movieTotalPages = movieData.total_pages || 0;
+                const tvTotalPages = tvData.total_pages || 0;
+                totalOttPages = Math.min(Math.max(movieTotalPages, tvTotalPages), 500);
+                
+                updateOttPagination();
+            } else {
+                showNoOttResults();
+            }
         }
     } catch (error) {
         console.error('Error loading OTT content:', error);
@@ -801,7 +981,7 @@ function showNoOttResults() {
     ottGrid.innerHTML = `
         <div class="no-results">
             <i class="fas fa-film"></i>
-            <p>No digital releases found. Try a different filter or language selection.</p>
+            <p>${isSearching ? 'No streaming content found matching your search. Try different keywords or filters.' : 'No streaming content found. Try different filters or language selection.'}</p>
         </div>
     `;
 }
@@ -831,4 +1011,612 @@ function updateOttPagination() {
     ottCurrentPageSpan.textContent = `Page ${currentOttPage} of ${totalOttPages}`;
     ottPrevPageBtn.disabled = currentOttPage === 1;
     ottNextPageBtn.disabled = currentOttPage === totalOttPages;
+}
+
+// Debounce function to limit API calls
+function debounce(func, delay) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+}
+
+// Handle autocomplete
+async function handleAutocomplete() {
+    const query = searchInput.value.trim();
+    
+    // Clear autocomplete if query is empty
+    if (!query) {
+        autocompleteResults.style.display = 'none';
+        return;
+    }
+    
+    try {
+        // Prepare parameters for API calls
+        let params = new URLSearchParams({
+            api_key: API_KEY,
+            query: query,
+            region: 'IN', // India region
+            page: 1,
+            include_adult: false
+        });
+        
+        // Add language filter if selected
+        if (currentLanguage !== 'all') {
+            params.append('with_original_language', currentLanguage);
+        }
+        
+        // Fetch movie and TV show suggestions in parallel
+        const [movieResponse, tvResponse] = await Promise.all([
+            fetch(`${BASE_URL}/search/movie?${params}`),
+            fetch(`${BASE_URL}/search/tv?${params}`)
+        ]);
+        
+        const movieData = await movieResponse.json();
+        const tvData = await tvResponse.json();
+        
+        // Combine and process results
+        const combinedResults = [
+            ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
+            ...tvData.results.map(item => ({ ...item, name: item.name, content_type: 'tv' }))
+        ];
+        
+        // Sort by popularity
+        combinedResults.sort((a, b) => b.popularity - a.popularity);
+        
+        // Display autocomplete results
+        displayAutocompleteResults(combinedResults);
+    } catch (error) {
+        console.error('Error fetching autocomplete suggestions:', error);
+    }
+}
+
+// Handle keyboard navigation for autocomplete
+function handleAutocompleteKeydown(e) {
+    // Only process if autocomplete is visible
+    if (autocompleteResults.style.display !== 'block') return;
+    
+    const items = autocompleteResults.querySelectorAll('.autocomplete-item');
+    if (items.length === 0) return;
+    
+    // Find currently selected item
+    const currentIndex = Array.from(items).findIndex(item => 
+        item.classList.contains('selected'));
+    
+    switch (e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            // Select next item or first if none selected
+            if (currentIndex < 0 || currentIndex >= items.length - 1) {
+                // Select first item
+                if (items[0]) {
+                    items.forEach(item => item.classList.remove('selected'));
+                    items[0].classList.add('selected');
+                    items[0].scrollIntoView({ block: 'nearest' });
+                }
+            } else {
+                // Select next item
+                items.forEach(item => item.classList.remove('selected'));
+                items[currentIndex + 1].classList.add('selected');
+                items[currentIndex + 1].scrollIntoView({ block: 'nearest' });
+            }
+            break;
+            
+        case 'ArrowUp':
+            e.preventDefault();
+            // Select previous item or last if none selected
+            if (currentIndex <= 0) {
+                // Select last item
+                if (items[items.length - 1]) {
+                    items.forEach(item => item.classList.remove('selected'));
+                    items[items.length - 1].classList.add('selected');
+                    items[items.length - 1].scrollIntoView({ block: 'nearest' });
+                }
+            } else {
+                // Select previous item
+                items.forEach(item => item.classList.remove('selected'));
+                items[currentIndex - 1].classList.add('selected');
+                items[currentIndex - 1].scrollIntoView({ block: 'nearest' });
+            }
+            break;
+            
+        case 'Enter':
+            // If an item is selected, use it
+            if (currentIndex >= 0) {
+                e.preventDefault();
+                const selectedItem = items[currentIndex];
+                const title = selectedItem.querySelector('.autocomplete-title').textContent;
+                searchInput.value = title;
+                autocompleteResults.style.display = 'none';
+                handleSearch();
+            }
+            break;
+            
+        case 'Escape':
+            // Close autocomplete
+            autocompleteResults.style.display = 'none';
+            break;
+    }
+}
+
+// Display autocomplete results
+function displayAutocompleteResults(results) {
+    // Clear previous results
+    autocompleteResults.innerHTML = '';
+    
+    // Filter results to only include those with poster images
+    const resultsWithPosters = results.filter(item => item.poster_path).slice(0, 5);
+    
+    if (resultsWithPosters.length === 0) {
+        autocompleteResults.style.display = 'none';
+        return;
+    }
+    
+    // Create and append autocomplete items
+    resultsWithPosters.forEach((item, index) => {
+        const isMovie = item.content_type === 'movie';
+        const title = isMovie ? item.title : item.name;
+        const releaseDate = isMovie ? item.release_date : item.first_air_date;
+        const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : '';
+        const contentType = isMovie ? 'Movie' : 'TV Show';
+        
+        const itemElement = document.createElement('div');
+        itemElement.classList.add('autocomplete-item');
+        // Select first item by default
+        if (index === 0) {
+            itemElement.classList.add('selected');
+        }
+        
+        itemElement.innerHTML = `
+            <img class="autocomplete-poster" src="${IMAGE_BASE_URL + 'w92' + item.poster_path}" alt="${title}">
+            <div class="autocomplete-info">
+                <h4 class="autocomplete-title">${title}</h4>
+                <span class="autocomplete-year">${releaseYear} ${contentType}</span>
+            </div>
+        `;
+        
+        // Add click event to select this item
+        itemElement.addEventListener('click', () => {
+            searchInput.value = title;
+            autocompleteResults.style.display = 'none';
+            handleSearch();
+        });
+        
+        autocompleteResults.appendChild(itemElement);
+    });
+    
+    // Show the autocomplete dropdown
+    autocompleteResults.style.display = 'block';
+}
+
+// Go to previous Coming Soon page
+function goToComingSoonPrevPage() {
+    if (currentComingSoonPage > 1) {
+        currentComingSoonPage--;
+        loadComingSoonContent();
+        window.scrollTo(0, 0);
+    }
+}
+
+// Go to next Coming Soon page
+function goToComingSoonNextPage() {
+    if (currentComingSoonPage < totalComingSoonPages) {
+        currentComingSoonPage++;
+        loadComingSoonContent();
+        window.scrollTo(0, 0);
+    }
+}
+
+// Load Top Rated content
+async function loadTopRatedContent() {
+    showTopRatedLoading();
+    
+    try {
+        // Calculate date 6 months ago for recent content
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
+        
+        // Prepare common parameters for all-time top rated
+        const allTimeParams = {
+            api_key: API_KEY,
+            page: 1,
+            region: 'IN',
+            with_origin_country: 'IN',
+            sort_by: 'vote_average.desc',
+            'vote_count.gte': 50, // Further lowered to get more results
+            'vote_average.gte': 7.0, // Further lowered to get more results
+            'include_adult': false
+        };
+        
+        // Prepare common parameters for recent top rated
+        const recentParams = {
+            api_key: API_KEY,
+            page: 1,
+            region: 'IN',
+            with_origin_country: 'IN',
+            sort_by: 'vote_average.desc',
+            'vote_count.gte': 20, // Further lowered to get more results
+            'vote_average.gte': 6.0, // Further lowered to get more results
+            'primary_release_date.gte': sixMonthsAgoStr, // Movies from last 6 months
+            'first_air_date.gte': sixMonthsAgoStr, // TV shows from last 6 months
+            'include_adult': false
+        };
+        
+        // Create movie and TV parameters for all-time
+        let allTimeMovieParams = new URLSearchParams(allTimeParams);
+        let allTimeTvParams = new URLSearchParams(allTimeParams);
+        
+        // Create movie and TV parameters for recent
+        let recentMovieParams = new URLSearchParams(recentParams);
+        let recentTvParams = new URLSearchParams(recentParams);
+        
+        // Add language filter if selected
+        if (currentLanguage !== 'all') {
+            allTimeMovieParams.append('with_original_language', currentLanguage);
+            allTimeTvParams.append('with_original_language', currentLanguage);
+            recentMovieParams.append('with_original_language', currentLanguage);
+            recentTvParams.append('with_original_language', currentLanguage);
+        }
+        
+        // Fetch all-time top rated movies and TV shows
+        const [allTimeMovieResponse, allTimeTvResponse, recentMovieResponse, recentTvResponse] = await Promise.all([
+            fetch(`${BASE_URL}/discover/movie?${allTimeMovieParams}`),
+            fetch(`${BASE_URL}/discover/tv?${allTimeTvParams}`),
+            fetch(`${BASE_URL}/discover/movie?${recentMovieParams}`),
+            fetch(`${BASE_URL}/discover/tv?${recentTvParams}`)
+        ]);
+        
+        const allTimeMovieData = await allTimeMovieResponse.json();
+        const allTimeTvData = await allTimeTvResponse.json();
+        const recentMovieData = await recentMovieResponse.json();
+        const recentTvData = await recentTvResponse.json();
+        
+        console.log('API Response - All Time Movies:', allTimeMovieData.results.length);
+        console.log('API Response - All Time TV:', allTimeTvData.results.length);
+        console.log('API Response - Recent Movies:', recentMovieData.results.length);
+        console.log('API Response - Recent TV:', recentTvData.results.length);
+        
+        // Combine all-time results and add content type and category
+        let allTimeResults = [
+            ...allTimeMovieData.results.map(item => ({ ...item, content_type: 'movie', category: 'all-time' })),
+            ...allTimeTvData.results.map(item => ({ ...item, content_type: 'tv', category: 'all-time' }))
+        ];
+        
+        // Combine recent results and add content type and category
+        let recentResults = [
+            ...recentMovieData.results.map(item => ({ ...item, content_type: 'movie', category: 'recent' })),
+            ...recentTvData.results.map(item => ({ ...item, content_type: 'tv', category: 'recent' }))
+        ];
+        
+        // Sort each category by vote average
+        allTimeResults.sort((a, b) => b.vote_average - a.vote_average);
+        recentResults.sort((a, b) => b.vote_average - a.vote_average);
+        
+        console.log('Combined All Time Results:', allTimeResults.length);
+        console.log('Combined Recent Results:', recentResults.length);
+        
+        // Take top 4 from each category
+        const topAllTime = allTimeResults.slice(0, 4);
+        const topRecent = recentResults.slice(0, 4);
+        
+        console.log('Top All Time (after slice):', topAllTime.length);
+        console.log('Top Recent (after slice):', topRecent.length);
+        
+        // Combine for final display
+        const combinedResults = [...topRecent, ...topAllTime];
+        
+        if (combinedResults.length > 0) {
+            displayTopRatedContent(combinedResults);
+        } else {
+            showNoTopRatedResults();
+        }
+    } catch (error) {
+        console.error('Error loading top rated content:', error);
+        showTopRatedError();
+    }
+}
+
+// Display Top Rated content
+function displayTopRatedContent(content) {
+    topRatedGrid.innerHTML = '';
+    
+    // Get today's date for comparison
+    const today = new Date();
+    
+    // Filter content to only include those with poster images
+    const contentWithPosters = content.filter(item => {
+        if (!item.poster_path) return false;
+        
+        // Check release date for movies
+        if (item.content_type === 'movie') {
+            const releaseDate = item.release_date ? new Date(item.release_date) : null;
+            return releaseDate && releaseDate <= today;
+        }
+        
+        // Check first air date for TV shows
+        if (item.content_type === 'tv') {
+            const firstAirDate = item.first_air_date ? new Date(item.first_air_date) : null;
+            return firstAirDate && firstAirDate <= today;
+        }
+        
+        return false;
+    });
+    
+    if (contentWithPosters.length > 0) {
+        // First add a heading for recent top rated
+        topRatedGrid.innerHTML = `
+            <div class="top-rated-category">
+                <h3>Recent Hits <span class="top-rated-subtitle">Top rated from the last 6 months</span></h3>
+            </div>
+        `;
+        
+        // Add recent content first
+        const recentContent = contentWithPosters.filter(item => item.category === 'recent');
+        console.log('Recent content count:', recentContent.length); // Debug log
+        
+        recentContent.forEach(item => {
+            let contentCard;
+            if (item.content_type === 'movie') {
+                contentCard = createTopRatedCard(item, 'recent');
+            } else {
+                // Convert TV show data to match the format expected by createOttCard
+                const tvItem = {
+                    ...item,
+                    watch_providers: [] // No watch providers for top rated section
+                };
+                contentCard = createTopRatedCard(tvItem, 'recent');
+            }
+            topRatedGrid.appendChild(contentCard);
+        });
+        
+        // Add a heading for all-time classics
+        const allTimeHeading = document.createElement('div');
+        allTimeHeading.className = 'top-rated-category';
+        allTimeHeading.innerHTML = `
+            <h3>All-Time Classics <span class="top-rated-subtitle">Highest rated of all time</span></h3>
+        `;
+        topRatedGrid.appendChild(allTimeHeading);
+        
+        // Add all-time content
+        const allTimeContent = contentWithPosters.filter(item => item.category === 'all-time');
+        console.log('All-time content count:', allTimeContent.length); // Debug log
+        
+        allTimeContent.forEach(item => {
+            let contentCard;
+            if (item.content_type === 'movie') {
+                contentCard = createTopRatedCard(item, 'all-time');
+            } else {
+                // Convert TV show data to match the format expected by createOttCard
+                const tvItem = {
+                    ...item,
+                    watch_providers: [] // No watch providers for top rated section
+                };
+                contentCard = createTopRatedCard(tvItem, 'all-time');
+            }
+            topRatedGrid.appendChild(contentCard);
+        });
+    } else {
+        showNoTopRatedResults();
+    }
+}
+
+// Create a Top Rated card element
+function createTopRatedCard(item, category) {
+    const isMovie = item.content_type === 'movie';
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.dataset.id = item.id;
+    card.dataset.type = isMovie ? 'movie' : 'tv';
+    
+    const title = isMovie ? item.title : item.name;
+    const releaseDate = isMovie ? item.release_date : item.first_air_date;
+    const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : 'Unknown';
+    const languageCode = item.original_language;
+    const languageName = languageNames[languageCode] || languageCode;
+    
+    // Add content type badge
+    const typeBadge = isMovie ? 
+        '<span class="content-type movie">Movie</span>' : 
+        '<span class="content-type tv">TV Show</span>';
+    
+    // Add rating badge
+    const ratingBadge = `<div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>`;
+    
+    // Add category badge (recent or all-time)
+    const categoryClass = category === 'recent' ? 'recent-badge' : 'classic-badge';
+    const categoryText = category === 'recent' ? 'Recent Hit' : 'Classic';
+    const categoryBadge = `<div class="${categoryClass}"><i class="${category === 'recent' ? 'fas fa-fire' : 'fas fa-trophy'}"></i> ${categoryText}</div>`;
+    
+    card.innerHTML = `
+        ${typeBadge}
+        ${ratingBadge}
+        ${categoryBadge}
+        <img class="movie-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + item.poster_path}" alt="${title}">
+        <div class="movie-info">
+            <h3 class="movie-title">${title}</h3>
+            <p class="movie-year">${releaseYear}</p>
+            <span class="movie-language">${languageName}</span>
+        </div>
+    `;
+    
+    card.addEventListener('click', () => {
+        if (isMovie) {
+            openMovieDetails(item.id);
+        } else {
+            openOttDetails(item.id, 'tv');
+        }
+    });
+    
+    return card;
+}
+
+// Load Coming Soon content
+async function loadComingSoonContent() {
+    showComingSoonLoading();
+    
+    try {
+        // Get today's date and future date (3 months from now)
+        const today = getTodayDate();
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + 3);
+        const futureDateStr = futureDate.toISOString().split('T')[0];
+        
+        // Prepare parameters for API call
+        let params = new URLSearchParams({
+            api_key: API_KEY,
+            page: currentComingSoonPage,
+            region: 'IN',
+            with_origin_country: 'IN',
+            'release_date.gte': today,
+            'release_date.lte': futureDateStr,
+            sort_by: 'release_date.asc',
+            'include_adult': false
+        });
+        
+        // Add language filter if selected
+        if (currentLanguage !== 'all') {
+            params.append('with_original_language', currentLanguage);
+            console.log('Applying language filter to Coming Soon section:', currentLanguage);
+        }
+        
+        // Fetch upcoming movies
+        const response = await fetch(`${BASE_URL}/discover/movie?${params}`);
+        const data = await response.json();
+        
+        console.log('Coming Soon API Response:', data.results ? data.results.length : 0, 'movies found');
+        
+        if (data.results && data.results.length > 0) {
+            displayComingSoonContent(data.results);
+            totalComingSoonPages = Math.min(data.total_pages, 500); // TMDB API limits to 500 pages
+            updateComingSoonPagination();
+        } else {
+            showNoComingSoonResults();
+        }
+    } catch (error) {
+        console.error('Error loading upcoming movies:', error);
+        showComingSoonError();
+    }
+}
+
+// Display Coming Soon content
+function displayComingSoonContent(movies) {
+    comingSoonGrid.innerHTML = '';
+    
+    // Filter movies to only include those with poster images
+    const moviesWithPosters = movies.filter(movie => movie.poster_path);
+    
+    if (moviesWithPosters.length > 0) {
+        moviesWithPosters.forEach(movie => {
+            const movieCard = createComingSoonCard(movie);
+            comingSoonGrid.appendChild(movieCard);
+        });
+    } else {
+        showNoComingSoonResults();
+    }
+}
+
+// Create a Coming Soon card element
+function createComingSoonCard(movie) {
+    const movieCard = document.createElement('div');
+    movieCard.classList.add('movie-card');
+    movieCard.dataset.id = movie.id;
+    
+    const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown';
+    const releaseDate = movie.release_date ? new Date(movie.release_date).toLocaleDateString() : 'Unknown';
+    const languageCode = movie.original_language;
+    const languageName = languageNames[languageCode] || languageCode;
+    
+    // Add content type badge
+    const typeBadge = '<span class="content-type movie">Coming Soon</span>';
+    
+    // Add release date badge
+    const releaseBadge = `<div class="release-badge"><i class="fas fa-calendar-day"></i> ${releaseDate}</div>`;
+    
+    movieCard.innerHTML = `
+        ${typeBadge}
+        ${releaseBadge}
+        <img class="movie-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + movie.poster_path}" alt="${movie.title}">
+        <div class="movie-info">
+            <h3 class="movie-title">${movie.title}</h3>
+            <p class="movie-year">${releaseYear}</p>
+            <span class="movie-language">${languageName}</span>
+        </div>
+    `;
+    
+    movieCard.addEventListener('click', () => {
+        openMovieDetails(movie.id);
+    });
+    
+    return movieCard;
+}
+
+// Update Coming Soon pagination buttons and current page display
+function updateComingSoonPagination() {
+    comingSoonCurrentPageSpan.textContent = `Page ${currentComingSoonPage} of ${totalComingSoonPages}`;
+    comingSoonPrevPageBtn.disabled = currentComingSoonPage === 1;
+    comingSoonNextPageBtn.disabled = currentComingSoonPage === totalComingSoonPages;
+}
+
+// Show Top Rated loading state
+function showTopRatedLoading() {
+    topRatedGrid.innerHTML = `
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading top rated content...</p>
+        </div>
+    `;
+}
+
+// Show Coming Soon loading state
+function showComingSoonLoading() {
+    comingSoonGrid.innerHTML = `
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading upcoming releases...</p>
+        </div>
+    `;
+}
+
+// Show no Top Rated results message
+function showNoTopRatedResults() {
+    topRatedGrid.innerHTML = `
+        <div class="no-results">
+            <i class="fas fa-film"></i>
+            <p>No top rated movies or TV shows found. Try a different language filter.</p>
+        </div>
+    `;
+}
+
+// Show no Coming Soon results message
+function showNoComingSoonResults() {
+    comingSoonGrid.innerHTML = `
+        <div class="no-results">
+            <i class="fas fa-film"></i>
+            <p>No upcoming releases found. Try a different language filter.</p>
+        </div>
+    `;
+}
+
+// Show Top Rated error message
+function showTopRatedError() {
+    topRatedGrid.innerHTML = `
+        <div class="error">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Failed to load top rated content. Please try again later.</p>
+        </div>
+    `;
+}
+
+// Show Coming Soon error message
+function showComingSoonError() {
+    comingSoonGrid.innerHTML = `
+        <div class="error">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Failed to load upcoming releases. Please try again later.</p>
+        </div>
+    `;
 }

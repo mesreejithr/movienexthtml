@@ -13,59 +13,49 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header>
+    <header class="cinematic-header">
+        <div class="header-backdrop"></div>
         <div class="container">
-            <div class="logo-container">
-                <h1>
-                    <a href="#"><img src="MovieNext-Logo.png" alt="MovieNext Logo" class="logo-image"></a>
-                </h1>
+            <div class="header-top">
+                <div class="logo-container">
+                    <h1>
+                        <a href="#"><img src="MovieNext-Logo.png" alt="MovieNext Logo" class="logo-image"></a>
+                    </h1>
+                    <span class="tagline">Discover Your Next Favorite</span>
+                </div>
+                <div class="language-filter">
+                    <select id="language-select">
+                        <option value="all">All Indian Languages</option>
+                        <option value="hi">Hindi</option>
+                        <option value="ta">Tamil</option>
+                        <option value="te">Telugu</option>
+                        <option value="ml">Malayalam</option>
+                        <option value="kn">Kannada</option>
+                        <option value="bn">Bengali</option>
+                    </select>
+                </div>
             </div>
             <div class="search-container">
-                <input type="text" id="search" placeholder="Search for movies...">
-                <button id="search-btn"><i class="fas fa-search"></i></button>
+                <div class="search-icon"><i class="fas fa-search"></i></div>
+                <input type="text" id="search" placeholder="Search for movies, TV shows & web series...">
+                <button id="search-btn">Search</button>
+                <div id="autocomplete-results" class="autocomplete-results"></div>
             </div>
-            <div class="language-filter">
-                <select id="language-select">
-                    <option value="all">All Indian Languages</option>
-                    <option value="hi">Hindi</option>
-                    <option value="ta">Tamil</option>
-                    <option value="te">Telugu</option>
-                    <option value="ml">Malayalam</option>
-                    <option value="kn">Kannada</option>
-                    <option value="bn">Bengali</option>
-                </select>
+            <div class="header-categories">
+                <a href="#ott-section" class="category-link active"><i class="fas fa-tv"></i> Streaming</a>
+                <a href="#movies-section" class="category-link"><i class="fas fa-film"></i> In Theatres</a>
+                <a href="#top-rated-section" class="category-link"><i class="fas fa-star"></i> Top Rated</a>
+                <a href="#coming-soon-section" class="category-link"><i class="fas fa-calendar-alt"></i> Coming Soon</a>
             </div>
         </div>
     </header>
 
     <main>
         <div class="container">
-            <!-- Theatre Movies Section -->
-            <section id="movies-section" class="content-section">
-                <div class="movies-heading">
-                    <h2>Latest in Theatres</h2>
-                </div>
-                <div id="movies-grid" class="movies-grid">
-                    <!-- Movies will be loaded here dynamically -->
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading movies...</p>
-                    </div>
-                </div>
-                <div class="pagination">
-                    <button id="prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
-                    <span id="current-page">Page 1</span>
-                    <button id="next-page">Next <i class="fas fa-chevron-right"></i></button>
-                </div>
-            </section>
-
-            <!-- Section Divider -->
-            <div class="section-divider"></div>
-
             <!-- OTT Section -->
             <section id="ott-section" class="content-section">
                 <div class="ott-heading">
-                    <h2>Digital Releases on OTT Platforms</h2>
+                    <h2>Latest on OTT</h2>
                     <div class="ott-filters">
                         <select id="content-type-select">
                             <option value="all">All Content</option>
@@ -97,6 +87,68 @@
                     <button id="ott-next-page">Next <i class="fas fa-chevron-right"></i></button>
                 </div>
             </section>
+
+            <!-- Section Divider -->
+            <div class="section-divider"></div>
+
+            <!-- Theatre Movies Section -->
+            <section id="movies-section" class="content-section">
+                <div class="movies-heading">
+                    <h2>Latest in Theatres</h2>
+                </div>
+                <div id="movies-grid" class="movies-grid">
+                    <!-- Movies will be loaded here dynamically -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading movies...</p>
+                    </div>
+                </div>
+                <div class="pagination">
+                    <button id="prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="current-page">Page 1</span>
+                    <button id="next-page">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
+
+            <!-- Section Divider -->
+            <div class="section-divider"></div>
+
+            <!-- Top Rated Section -->
+            <section id="top-rated-section" class="content-section">
+                <div class="movies-heading">
+                    <h2>Top Rated</h2>
+                    <p class="section-subtitle">Curated selection of the highest-rated Indian movies and shows</p>
+                </div>
+                <div id="top-rated-grid" class="movies-grid">
+                    <!-- Top rated content will be loaded here dynamically -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading top rated content...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section Divider -->
+            <div class="section-divider"></div>
+
+            <!-- Coming Soon Section -->
+            <section id="coming-soon-section" class="content-section">
+                <div class="movies-heading">
+                    <h2>Coming Soon</h2>
+                </div>
+                <div id="coming-soon-grid" class="movies-grid">
+                    <!-- Coming soon content will be loaded here dynamically -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading upcoming releases...</p>
+                    </div>
+                </div>
+                <div class="pagination">
+                    <button id="coming-soon-prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="coming-soon-current-page">Page 1</span>
+                    <button id="coming-soon-next-page">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -122,10 +174,14 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2023 MovieNext. Powered by <a href="https://www.themoviedb.org/" target="_blank">TMDB API</a></p>
+            <p>&copy; <span id="current-year"></span> MovieNext</p>
         </div>
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html> 
