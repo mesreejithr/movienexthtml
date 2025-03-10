@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieNext</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC5ElEQVRYR8WXS2gTURSGv5lJmjZN0zR9WJFWRUWkIoqCUgRBEMSFG8FFQVwIbnThxoW4FHHhyoUrQVwIIi4EQRAXPkAQH4hYqFoVtFal2jZt0zyamcyYSWfMZDJJJjUgd3XPuf/9z3/PPfdcwT9+xD/WRwXAW+B0FMHZbJatra2kUimSySSCIHgKlMtlCoUCuVyOXC5XBc4A70LGhwKIwBvgkFPg8PCwNDY2RjKZDDOvPZfP55mammJ2dlYBPgKHAcUT5BcgAVNAv1NoenpaGhgYwA/sVVgul2NiYsIJMgkMAlUviBvgKnDJKTA+Pi719/d7CjmFnp+fZ3x8XHl1A7jsBnADvAf2OQUuXLggDQ0N+Xp9ZmZGunr1qvLqI7DXD+AjsMMpcPbsWWl4eNgXYGFhQbp27Zry6guwyw/gG7DNKXDq1Clpz549vgCLi4vSzZs3lVffge1+AN+BLU6BY8eOSbt37/YFWFpakm7fvq28+gFs9QP4AWxyChw5ckTatWuXL8Dy8rJ0584d5dVPYLMfwC9gg1Pg0KFD0s6dO30BVlZWpHv37imvfgPJIIBfQNwpcPDgQWnHjh2+AKurq9L9+/eVV3+ARBDAb2C9U+DAgQPS9u3bfQHW1takBw8eKK/+AuuCAFaAiFNg//790rZt23wB1tfXpYcPHyqvVoFoEIACITkF9u3bJ/X19fkCFAoF6dGjR8qrEhALAlAhJDkF9u7dK/X2eqe3Wq1Gjx8/Vl4VgfYgADWIJKfAnj17pJ6eHk+AYrEoPXnyRHlVANqCANQoVpwCIyMjUnd3tydAqVSSnj59qrxaBVqDANQwlpwCw8PDUldXlydAuVyWnj17prxaAVqCANQ0lpwCQ0NDUmdnpydApVKRnj9/rrxaBlqDANQ4lpwCg4ODUkdHhydAtVqVXrx4obzKA21BAGogS06BgYEBqb293RPAMAzp5cuXyqsc0B4EoEay5BTo7++X0um0J4BpmtKrV6+UV4tAJghADWXJKdDX1yelUilPANM0pdevXyuvFoD2KAD/AGgSXyEfMF8+AAAAAElFTkSuQmCC">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo-container">
+                <h1>
+                    <a href="#"><img src="MovieNext-Logo.png" alt="MovieNext Logo" class="logo-image"></a>
+                </h1>
+            </div>
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search for movies...">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="language-filter">
+                <select id="language-select">
+                    <option value="all">All Indian Languages</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ta">Tamil</option>
+                    <option value="te">Telugu</option>
+                    <option value="ml">Malayalam</option>
+                    <option value="kn">Kannada</option>
+                    <option value="bn">Bengali</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- Theatre Movies Section -->
+            <section id="movies-section" class="content-section">
+                <div class="movies-heading">
+                    <h2>Latest in Theatres</h2>
+                </div>
+                <div id="movies-grid" class="movies-grid">
+                    <!-- Movies will be loaded here dynamically -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading movies...</p>
+                    </div>
+                </div>
+                <div class="pagination">
+                    <button id="prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="current-page">Page 1</span>
+                    <button id="next-page">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
+
+            <!-- Section Divider -->
+            <div class="section-divider"></div>
+
+            <!-- OTT Section -->
+            <section id="ott-section" class="content-section">
+                <div class="ott-heading">
+                    <h2>Digital Releases on OTT Platforms</h2>
+                    <div class="ott-filters">
+                        <select id="content-type-select">
+                            <option value="all">All Content</option>
+                            <option value="movie">Movies</option>
+                            <option value="tv">TV Shows & Web Series</option>
+                        </select>
+                        <select id="ott-provider-select">
+                            <option value="all">All Platforms</option>
+                            <option value="8">Netflix</option>
+                            <option value="119">Amazon Prime</option>
+                            <option value="337">Disney+</option>
+                            <option value="122">Hotstar</option>
+                            <option value="2336">JioHotstar</option>
+                            <option value="237">SonyLIV</option>
+                            <option value="232">ZEE5</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="ott-grid" class="ott-grid">
+                    <!-- OTT content will be loaded here dynamically -->
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading OTT content...</p>
+                    </div>
+                </div>
+                <div class="pagination">
+                    <button id="ott-prev-page" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+                    <span id="ott-current-page">Page 1</span>
+                    <button id="ott-next-page">Next <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Movie Details Modal -->
+    <div id="movie-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-details" class="modal-details">
+                <!-- Movie details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- OTT Content Details Modal -->
+    <div id="ott-modal" class="modal">
+        <div class="modal-content">
+            <span class="ott-close close">&times;</span>
+            <div id="ott-modal-details" class="modal-details">
+                <!-- OTT content details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 MovieNext. Powered by <a href="https://www.themoviedb.org/" target="_blank">TMDB API</a></p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
