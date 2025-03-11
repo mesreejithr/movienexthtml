@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MovieNext</title>
     <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAC5ElEQVRYR8WXS2gTURSGv5lJmjZN0zR9WJFWRUWkIoqCUgRBEMSFG8FFQVwIbnThxoW4FHHhyoUrQVwIIi4EQRAXPkAQH4hYqFoVtFal2jZt0zyamcyYSWfMZDJJJjUgd3XPuf/9z3/PPfdcwT9+xD/WRwXAW+B0FMHZbJatra2kUimSySSCIHgKlMtlCoUCuVyOXC5XBc4A70LGhwKIwBvgkFPg8PCwNDY2RjKZDDOvPZfP55mammJ2dlYBPgKHAcUT5BcgAVNAv1NoenpaGhgYwA/sVVgul2NiYsIJMgkMAlUviBvgKnDJKTA+Pi719/d7CjmFnp+fZ3x8XHl1A7jsBnADvAf2OQUuXLggDQ0N+Xp9ZmZGunr1qvLqI7DXD+AjsMMpcPbsWWl4eNgXYGFhQbp27Zry6guwyw/gG7DNKXDq1Clpz549vgCLi4vSzZs3lVffge1+AN+BLU6BY8eOSbt37/YFWFpakm7fvq28+gFs9QP4AWxyChw5ckTatWuXL8Dy8rJ0584d5dVPYLMfwC9gg1Pg0KFD0s6dO30BVlZWpHv37imvfgPJIIBfQNwpcPDgQWnHjh2+AKurq9L9+/eVV3+ARBDAb2C9U+DAgQPS9u3bfQHW1takBw8eKK/+AuuCAFaAiFNg//790rZt23wB1tfXpYcPHyqvVoFoEIACITkF9u3bJ/X19fkCFAoF6dGjR8qrEhALAlAhJDkF9u7dK/X2eqe3Wq1Gjx8/Vl4VgfYgADWIJKfAnj17pJ6eHk+AYrEoPXnyRHlVANqCANQoVpwCIyMjUnd3tydAqVSSnj59qrxaBVqDANQwlpwCw8PDUldXlydAuVyWnj17prxaAVqCANQ0lpwCQ0NDUmdnpydApVKRnj9/rrxaBlqDANQ4lpwCg4ODUkdHhydAtVqVXrx4obzKA21BAGogS06BgYEBqb293RPAMAzp5cuXyqsc0B4EoEay5BTo7++X0um0J4BpmtKrV6+UV4tAJghADWXJKdDX1yelUilPANM0pdevXyuvFoD2KAD/AGgSXyEfMF8+AAAAAElFTkSuQmCC">
     <!-- Google Fonts -->
@@ -23,7 +26,7 @@
                     </h1>
                     <span class="tagline">Discover Your Next Favorite</span>
                 </div>
-                <div class="language-filter">
+                <div class="language-filter desktop-only">
                     <select id="language-select">
                         <option value="all">All Indian Languages</option>
                         <option value="hi">Hindi</option>
@@ -56,7 +59,7 @@
             <section id="ott-section" class="content-section">
                 <div class="ott-heading">
                     <h2>Latest on OTT</h2>
-                    <div class="ott-filters">
+                    <div class="ott-filters desktop-only">
                         <select id="content-type-select">
                             <option value="all">All Content</option>
                             <option value="movie">Movies</option>
@@ -177,6 +180,78 @@
             <p>&copy; <span id="current-year"></span> MovieNext</p>
         </div>
     </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="mobile-bottom-nav">
+        <div class="mobile-nav-item" id="mobile-home-btn">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </div>
+        <div class="mobile-nav-item" id="mobile-search-btn">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+        </div>
+        <div class="mobile-nav-item" id="mobile-filter-btn">
+            <i class="fas fa-filter"></i>
+            <span>Filter</span>
+        </div>
+        <div class="mobile-nav-item" id="mobile-menu-btn">
+            <i class="fas fa-bars"></i>
+            <span>Menu</span>
+        </div>
+    </div>
+
+    <!-- Mobile Search Panel -->
+    <div class="mobile-search-panel">
+        <div class="panel-close">Close <i class="fas fa-times"></i></div>
+        <input type="text" id="mobile-search-input" placeholder="Search for movies, TV shows & web series...">
+        <button id="mobile-search-submit">Search</button>
+        <div id="mobile-autocomplete-results" class="autocomplete-results"></div>
+    </div>
+
+    <!-- Mobile Filter Panel -->
+    <div class="mobile-filter-panel">
+        <div class="panel-close">Close <i class="fas fa-times"></i></div>
+        
+        <div class="filter-label">Select Language</div>
+        <select id="mobile-language-select">
+            <option value="all">All Indian Languages</option>
+            <option value="hi">Hindi</option>
+            <option value="ta">Tamil</option>
+            <option value="te">Telugu</option>
+            <option value="ml">Malayalam</option>
+            <option value="kn">Kannada</option>
+            <option value="bn">Bengali</option>
+        </select>
+        
+        <div class="filter-label">Content Type</div>
+        <select id="mobile-content-type-select">
+            <option value="all">All Content</option>
+            <option value="movie">Movies</option>
+            <option value="tv">TV Shows & Web Series</option>
+        </select>
+        
+        <div class="filter-label">Streaming Platform</div>
+        <select id="mobile-ott-provider-select">
+            <option value="all">All Platforms</option>
+            <option value="8">Netflix</option>
+            <option value="119">Amazon Prime</option>
+            <option value="337">Disney+</option>
+            <option value="122">Hotstar</option>
+            <option value="2336">JioHotstar</option>
+            <option value="237">SonyLIV</option>
+            <option value="232">ZEE5</option>
+        </select>
+    </div>
+
+    <!-- Mobile Menu Panel -->
+    <div class="mobile-menu-panel">
+        <div class="panel-close">Close <i class="fas fa-times"></i></div>
+        <a href="#ott-section" class="mobile-menu-item active"><i class="fas fa-tv"></i> Streaming</a>
+        <a href="#movies-section" class="mobile-menu-item"><i class="fas fa-film"></i> In Theatres</a>
+        <a href="#top-rated-section" class="mobile-menu-item"><i class="fas fa-star"></i> Top Rated</a>
+        <a href="#coming-soon-section" class="mobile-menu-item"><i class="fas fa-calendar-alt"></i> Coming Soon</a>
+    </div>
 
     <script src="script.js"></script>
     <script>

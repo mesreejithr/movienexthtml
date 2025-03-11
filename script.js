@@ -127,6 +127,25 @@ function setupEventListeners() {
         }
     });
     
+    // Mobile menu toggle
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => {
+            document.body.classList.toggle('mobile-menu-open');
+        });
+        
+        // Close mobile menu when a category is clicked
+        const categoryLinks = document.querySelectorAll('.category-link');
+        categoryLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                document.body.classList.remove('mobile-menu-open');
+            });
+        });
+    }
+    
+    // Mobile bottom navigation
+    setupMobileNavigation();
+    
     // Category links
     const categoryLinks = document.querySelectorAll('.category-link');
     categoryLinks.forEach(link => {
@@ -1619,4 +1638,250 @@ function showComingSoonError() {
             <p>Failed to load upcoming releases. Please try again later.</p>
         </div>
     `;
+}
+
+// Setup Mobile Navigation
+function setupMobileNavigation() {
+    // Get mobile elements
+    const mobileHomeBtn = document.getElementById('mobile-home-btn');
+    const mobileSearchBtn = document.getElementById('mobile-search-btn');
+    const mobileFilterBtn = document.getElementById('mobile-filter-btn');
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+
+    const mobileSearchPanel = document.querySelector('.mobile-search-panel');
+    const mobileFilterPanel = document.querySelector('.mobile-filter-panel');
+    const mobileMenuPanel = document.querySelector('.mobile-menu-panel');
+
+    console.log('Mobile elements:', {
+        mobileHomeBtn,
+        mobileSearchBtn,
+        mobileFilterBtn,
+        mobileMenuBtn,
+        mobileSearchPanel,
+        mobileFilterPanel,
+        mobileMenuPanel
+    });
+
+    const mobileSearchInput = document.getElementById('mobile-search-input');
+    const mobileSearchSubmit = document.getElementById('mobile-search-submit');
+    const mobileAutocompleteResults = document.getElementById('mobile-autocomplete-results');
+
+    const mobileLanguageSelect = document.getElementById('mobile-language-select');
+    const mobileContentTypeSelect = document.getElementById('mobile-content-type-select');
+    const mobileOttProviderSelect = document.getElementById('mobile-ott-provider-select');
+
+    const panelCloseButtons = document.querySelectorAll('.panel-close');
+    console.log('Panel close buttons:', panelCloseButtons);
+
+    // Function to close all panels
+    function closeAllPanels() {
+        console.log('Closing all panels');
+        mobileSearchPanel.classList.remove('active');
+        mobileFilterPanel.classList.remove('active');
+        mobileMenuPanel.classList.remove('active');
+        
+        // Reset active state on nav items
+        document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+    
+    // Home button - close all panels
+    if (mobileHomeBtn) {
+        mobileHomeBtn.addEventListener('click', () => {
+            console.log('Home button clicked');
+            closeAllPanels();
+            mobileHomeBtn.classList.add('active');
+            window.scrollTo(0, 0);
+        });
+    }
+    
+    // Search button - toggle search panel
+    if (mobileSearchBtn && mobileSearchPanel) {
+        mobileSearchBtn.addEventListener('click', () => {
+            console.log('Search button clicked');
+            closeAllPanels();
+            mobileSearchPanel.classList.add('active');
+            mobileSearchBtn.classList.add('active');
+            mobileSearchInput.focus();
+        });
+    }
+    
+    // Filter button - toggle filter panel
+    if (mobileFilterBtn && mobileFilterPanel) {
+        mobileFilterBtn.addEventListener('click', () => {
+            console.log('Filter button clicked');
+            closeAllPanels();
+            mobileFilterPanel.classList.add('active');
+            mobileFilterBtn.classList.add('active');
+        });
+    }
+    
+    // Menu button - toggle menu panel
+    if (mobileMenuBtn && mobileMenuPanel) {
+        mobileMenuBtn.addEventListener('click', () => {
+            console.log('Menu button clicked');
+            closeAllPanels();
+            mobileMenuPanel.classList.add('active');
+            mobileMenuBtn.classList.add('active');
+        });
+    }
+    
+    // Close buttons for panels
+    if (panelCloseButtons) {
+        panelCloseButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('Close button clicked');
+                closeAllPanels();
+            });
+        });
+    }
+    
+    // Mobile menu items
+    const mobileMenuItems = document.querySelectorAll('.mobile-menu-item');
+    if (mobileMenuItems) {
+        mobileMenuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                closeAllPanels();
+                
+                // Update active state
+                mobileMenuItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+    }
+    
+    // Mobile search functionality
+    if (mobileSearchSubmit && mobileSearchInput) {
+        mobileSearchSubmit.addEventListener('click', () => {
+            const query = mobileSearchInput.value.trim();
+            if (query) {
+                searchQuery = query;
+                isSearching = true;
+                currentPage = 1;
+                currentOttPage = 1;
+                
+                // Load both movies and OTT content with the search query
+                loadMovies();
+                loadOttContent();
+                
+                // Close panel and scroll to top
+                closeAllPanels();
+                window.scrollTo(0, 0);
+            }
+        });
+        
+        mobileSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                mobileSearchSubmit.click();
+            }
+        });
+        
+        // Mobile autocomplete
+        mobileSearchInput.addEventListener('input', debounce(() => {
+            const query = mobileSearchInput.value.trim();
+            if (query.length >= 2) {
+                fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=1&include_adult=false&region=IN`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.results && data.results.length > 0) {
+                            displayMobileAutocompleteResults(data.results.slice(0, 5));
+                        } else {
+                            mobileAutocompleteResults.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error with autocomplete:', error);
+                        mobileAutocompleteResults.style.display = 'none';
+                    });
+            } else {
+                mobileAutocompleteResults.style.display = 'none';
+            }
+        }, 300));
+    }
+    
+    // Mobile filter functionality
+    if (mobileLanguageSelect) {
+        mobileLanguageSelect.addEventListener('change', () => {
+            currentLanguage = mobileLanguageSelect.value;
+            languageSelect.value = currentLanguage; // Sync with desktop
+            currentPage = 1;
+            currentOttPage = 1;
+            currentComingSoonPage = 1;
+            
+            // Reload all content sections
+            loadMovies();
+            loadOttContent();
+            loadTopRatedContent();
+            loadComingSoonContent();
+            
+            // Close panel
+            closeAllPanels();
+        });
+    }
+    
+    if (mobileContentTypeSelect) {
+        mobileContentTypeSelect.addEventListener('change', () => {
+            currentContentType = mobileContentTypeSelect.value;
+            contentTypeSelect.value = currentContentType; // Sync with desktop
+            currentOttPage = 1;
+            loadOttContent();
+            
+            // Close panel
+            closeAllPanels();
+        });
+    }
+    
+    if (mobileOttProviderSelect) {
+        mobileOttProviderSelect.addEventListener('change', () => {
+            currentOttProvider = mobileOttProviderSelect.value;
+            ottProviderSelect.value = currentOttProvider; // Sync with desktop
+            currentOttPage = 1;
+            loadOttContent();
+            
+            // Close panel
+            closeAllPanels();
+        });
+    }
+}
+
+// Function to display mobile autocomplete results
+function displayMobileAutocompleteResults(results) {
+    mobileAutocompleteResults.innerHTML = '';
+    mobileAutocompleteResults.style.display = 'block';
+    
+    results.forEach(result => {
+        if ((result.media_type === 'movie' || result.media_type === 'tv') && result.poster_path) {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'autocomplete-item';
+            
+            const title = result.media_type === 'movie' ? result.title : result.name;
+            const year = result.media_type === 'movie' 
+                ? (result.release_date ? new Date(result.release_date).getFullYear() : 'Unknown')
+                : (result.first_air_date ? new Date(result.first_air_date).getFullYear() : 'Unknown');
+            
+            resultItem.innerHTML = `
+                <img src="${IMAGE_BASE_URL}w92${result.poster_path}" alt="${title}">
+                <div>
+                    <div class="autocomplete-title">${title}</div>
+                    <div class="autocomplete-info">${year} • ${result.media_type === 'movie' ? 'Movie' : 'TV Show'}</div>
+                </div>
+            `;
+            
+            resultItem.addEventListener('click', () => {
+                mobileSearchInput.value = title;
+                mobileAutocompleteResults.style.display = 'none';
+                
+                if (result.media_type === 'movie') {
+                    openMovieDetails(result.id);
+                } else {
+                    openOttDetails(result.id, 'tv');
+                }
+                
+                closeAllPanels();
+            });
+            
+            mobileAutocompleteResults.appendChild(resultItem);
+        }
+    });
 }
