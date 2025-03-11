@@ -384,8 +384,11 @@ async function openMovieDetails(movieId) {
     modal.style.display = 'block';
     
     try {
-        const response = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&append_to_response=credits`);
+        const response = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&append_to_response=credits,watch/providers`);
         const movie = await response.json();
+        
+        // Add content_type property to match the format used in OTT content
+        movie.content_type = 'movie';
         
         displayMovieDetails(movie);
     } catch (error) {
@@ -421,6 +424,30 @@ function displayMovieDetails(movie) {
         }
     }
     
+    // Watch providers
+    let watchProvidersHTML = '';
+    if (movie['watch/providers'] && movie['watch/providers'].results && movie['watch/providers'].results.IN) {
+        const providers = movie['watch/providers'].results.IN;
+        
+        if (providers.flatrate && providers.flatrate.length > 0) {
+            watchProvidersHTML = `
+                <div class="watch-providers">
+                    <h3>Available on</h3>
+                    <div class="providers-list">
+                        ${providers.flatrate.map(provider => `
+                            <div class="provider-item">
+                                <a href="https://www.themoviedb.org/movie/${movie.id}/watch" target="_blank" rel="noopener noreferrer" title="Watch on ${provider.provider_name}">
+                                    <img class="provider-logo" src="${IMAGE_BASE_URL}w92${provider.logo_path}" alt="${provider.provider_name}">
+                                    ${provider.provider_name}
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
     modalDetails.innerHTML = `
         <div class="modal-poster">
             <img src="${IMAGE_BASE_URL + POSTER_SIZE + movie.poster_path}" alt="${movie.title}">
@@ -440,6 +467,7 @@ function displayMovieDetails(movie) {
             <div class="modal-genres">
                 ${genresHTML}
             </div>
+            ${watchProvidersHTML}
             ${movie.credits && movie.credits.cast && movie.credits.cast.length > 0 ? `
                 <div class="modal-cast">
                     <h3>Cast</h3>
@@ -873,8 +901,10 @@ function displayOttDetails(content) {
                     <div class="providers-list">
                         ${providers.flatrate.map(provider => `
                             <div class="provider-item">
-                                <img class="provider-logo" src="${IMAGE_BASE_URL}w92${provider.logo_path}" alt="${provider.provider_name}">
-                                ${provider.provider_name}
+                                <a href="https://www.themoviedb.org/${content.content_type === 'movie' ? 'movie' : 'tv'}/${content.id}/watch" target="_blank" rel="noopener noreferrer" title="Watch on ${provider.provider_name}">
+                                    <img class="provider-logo" src="${IMAGE_BASE_URL}w92${provider.logo_path}" alt="${provider.provider_name}">
+                                    ${provider.provider_name}
+                                </a>
                             </div>
                         `).join('')}
                     </div>
@@ -889,8 +919,10 @@ function displayOttDetails(content) {
                 <div class="providers-list">
                     ${content.watch_providers.map(provider => `
                         <div class="provider-item">
-                            <img class="provider-logo" src="${IMAGE_BASE_URL}w92${provider.logo_path}" alt="${provider.provider_name}">
-                            ${provider.provider_name}
+                            <a href="https://www.themoviedb.org/${content.content_type === 'movie' ? 'movie' : 'tv'}/${content.id}/watch" target="_blank" rel="noopener noreferrer" title="Watch on ${provider.provider_name}">
+                                <img class="provider-logo" src="${IMAGE_BASE_URL}w92${provider.logo_path}" alt="${provider.provider_name}">
+                                ${provider.provider_name}
+                            </a>
                         </div>
                     `).join('')}
                 </div>

@@ -808,17 +808,32 @@ main {
 .provider-item {
     display: flex;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
     padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.provider-item a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    width: 100%;
+}
+
+.provider-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .provider-logo {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
+    width: 30px;
+    height: 30px;
     border-radius: 4px;
+    margin-right: 10px;
+    object-fit: cover;
+    background-color: white;
 }
 
 /* TV Show Specific Styles */
