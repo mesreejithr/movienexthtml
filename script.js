@@ -363,25 +363,12 @@ function createMovieCard(movie) {
     movieCard.classList.add('movie-card');
     movieCard.dataset.id = movie.id;
     
-    const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown';
-    const languageCode = movie.original_language;
-    const languageName = languageNames[languageCode] || languageCode;
-    
-    // Add content type badge
-    const typeBadge = '<span class="content-type movie">Movie</span>';
-    
     // Add rating badge
     const ratingBadge = `<div class="rating-badge"><i class="fas fa-star"></i> ${movie.vote_average.toFixed(1)}</div>`;
     
     movieCard.innerHTML = `
-        ${typeBadge}
         ${ratingBadge}
         <img class="movie-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + movie.poster_path}" alt="${movie.title}">
-        <div class="movie-info">
-            <h3 class="movie-title">${movie.title}</h3>
-            <p class="movie-year">${releaseYear}</p>
-            <span class="movie-language">${languageName}</span>
-        </div>
     `;
     
     movieCard.addEventListener('click', () => {
@@ -786,15 +773,6 @@ function createOttCard(item) {
     ottCard.dataset.type = item.content_type;
     
     const title = item.content_type === 'movie' ? item.title : item.name;
-    const releaseDate = item.content_type === 'movie' ? item.release_date : item.first_air_date;
-    const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : 'Unknown';
-    const languageCode = item.original_language;
-    const languageName = languageNames[languageCode] || languageCode;
-    
-    // Add badge to indicate if it's a movie or TV show
-    const typeBadge = item.content_type === 'movie' ? 
-        '<span class="content-type movie">Digital Release</span>' : 
-        '<span class="content-type tv">Web Series</span>';
     
     // Add rating badge
     const ratingBadge = `<div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>`;
@@ -814,16 +792,10 @@ function createOttCard(item) {
     }
     
     ottCard.innerHTML = `
-        ${typeBadge}
         ${ratingBadge}
         <div class="poster-container">
             <img class="ott-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + item.poster_path}" alt="${title}">
             ${streamingLogosHTML}
-        </div>
-        <div class="ott-info">
-            <h3 class="ott-title">${title}</h3>
-            <p class="ott-year">${releaseYear}</p>
-            <span class="ott-language">${languageName}</span>
         </div>
     `;
     
@@ -1432,34 +1404,13 @@ function createTopRatedCard(item, category) {
     card.dataset.type = isMovie ? 'movie' : 'tv';
     
     const title = isMovie ? item.title : item.name;
-    const releaseDate = isMovie ? item.release_date : item.first_air_date;
-    const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : 'Unknown';
-    const languageCode = item.original_language;
-    const languageName = languageNames[languageCode] || languageCode;
-    
-    // Add content type badge
-    const typeBadge = isMovie ? 
-        '<span class="content-type movie">Movie</span>' : 
-        '<span class="content-type tv">TV Show</span>';
     
     // Add rating badge
     const ratingBadge = `<div class="rating-badge"><i class="fas fa-star"></i> ${item.vote_average.toFixed(1)}</div>`;
     
-    // Add category badge (recent or all-time)
-    const categoryClass = category === 'recent' ? 'recent-badge' : 'classic-badge';
-    const categoryText = category === 'recent' ? 'Recent Hit' : 'Classic';
-    const categoryBadge = `<div class="${categoryClass}"><i class="${category === 'recent' ? 'fas fa-fire' : 'fas fa-trophy'}"></i> ${categoryText}</div>`;
-    
     card.innerHTML = `
-        ${typeBadge}
         ${ratingBadge}
-        ${categoryBadge}
         <img class="movie-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + item.poster_path}" alt="${title}">
-        <div class="movie-info">
-            <h3 class="movie-title">${title}</h3>
-            <p class="movie-year">${releaseYear}</p>
-            <span class="movie-language">${languageName}</span>
-        </div>
     `;
     
     card.addEventListener('click', () => {
@@ -1544,26 +1495,8 @@ function createComingSoonCard(movie) {
     movieCard.classList.add('movie-card');
     movieCard.dataset.id = movie.id;
     
-    const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown';
-    const releaseDate = movie.release_date ? new Date(movie.release_date).toLocaleDateString() : 'Unknown';
-    const languageCode = movie.original_language;
-    const languageName = languageNames[languageCode] || languageCode;
-    
-    // Add content type badge
-    const typeBadge = '<span class="content-type movie">Coming Soon</span>';
-    
-    // Add release date badge
-    const releaseBadge = `<div class="release-badge"><i class="fas fa-calendar-day"></i> ${releaseDate}</div>`;
-    
     movieCard.innerHTML = `
-        ${typeBadge}
-        ${releaseBadge}
         <img class="movie-poster" src="${IMAGE_BASE_URL + POSTER_SIZE + movie.poster_path}" alt="${movie.title}">
-        <div class="movie-info">
-            <h3 class="movie-title">${movie.title}</h3>
-            <p class="movie-year">${releaseYear}</p>
-            <span class="movie-language">${languageName}</span>
-        </div>
     `;
     
     movieCard.addEventListener('click', () => {
