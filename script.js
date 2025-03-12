@@ -1649,6 +1649,18 @@ function setupMobileNavigation() {
         document.querySelectorAll('.mobile-nav-item').forEach(item => {
             item.classList.remove('active');
         });
+        
+        // Clear search inputs when panels are closed
+        const mobileSearchInput = document.getElementById('mobile-search-input');
+        const desktopSearchInput = document.getElementById('search');
+        
+        if (mobileSearchInput) {
+            mobileSearchInput.value = '';
+        }
+        
+        if (desktopSearchInput) {
+            desktopSearchInput.value = '';
+        }
     }
     
     // Home button - close all panels
@@ -1697,8 +1709,14 @@ function setupMobileNavigation() {
     if (panelCloseButtons) {
         panelCloseButtons.forEach(button => {
             button.addEventListener('click', () => {
-                console.log('Close button clicked');
+                console.log('Panel close button clicked');
                 closeAllPanels();
+                
+                // Clear the mobile search input when closing panels
+                const mobileSearchInput = document.getElementById('mobile-search-input');
+                if (mobileSearchInput) {
+                    mobileSearchInput.value = '';
+                }
             });
         });
     }
