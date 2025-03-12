@@ -29,7 +29,7 @@ const ottModal = document.getElementById('ott-modal');
 const ottModalDetails = document.getElementById('ott-modal-details');
 const ottCloseModal = document.querySelector('.ott-close');
 
-// DOM Elements - Top Rated Section
+// DOM Elements - Trending Section
 const topRatedGrid = document.getElementById('top-rated-grid');
 const topRatedPrevPageBtn = document.getElementById('top-rated-prev-page');
 const topRatedNextPageBtn = document.getElementById('top-rated-next-page');
@@ -60,7 +60,7 @@ let totalOttPages = 1;
 let currentContentType = 'all';
 let currentOttProvider = 'all';
 
-// State variables - Top Rated
+// State variables - Trending
 let currentTopRatedPage = 1;
 let totalTopRatedPages = 1;
 
@@ -94,6 +94,45 @@ const ottProviders = {
     '232': { name: 'ZEE5', class: 'zee5' }
 };
 
+// Header scroll effect
+const header = document.querySelector('.cinematic-header');
+let lastScroll = 0;
+let scrollTimer = null;
+
+window.addEventListener('scroll', () => {
+    const currentScroll = window.pageYOffset;
+    
+    // Add scrolled class when user scrolls down past threshold
+    if (currentScroll > 50) {
+        header.classList.add('scrolled');
+        
+        // Hide header when scrolling down, show when scrolling up
+        if (currentScroll > lastScroll) {
+            // Scrolling down
+            header.classList.add('hide');
+        } else {
+            // Scrolling up
+            header.classList.remove('hide');
+        }
+    } else {
+        header.classList.remove('scrolled');
+        header.classList.remove('hide');
+    }
+    
+    // Update last scroll position
+    lastScroll = currentScroll;
+    
+    // Clear existing timer
+    if (scrollTimer !== null) {
+        clearTimeout(scrollTimer);
+    }
+    
+    // Set a timer to show header after scrolling stops
+    scrollTimer = setTimeout(() => {
+        header.classList.remove('hide');
+    }, 1500);
+});
+
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
     loadOttContent();
@@ -105,9 +144,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Set up event listeners
 function setupEventListeners() {
-    // Movies section event listeners
-    languageSelect.addEventListener('change', handleLanguageChange);
-    searchBtn.addEventListener('click', handleSearch);
+    // Language pills event listeners
+    const languagePills = document.querySelectorAll('.language-pill');
+    languagePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            // Remove active class from all pills
+            languagePills.forEach(p => p.classList.remove('active'));
+            // Add active class to clicked pill
+            pill.classList.add('active');
+            // Update current language
+            currentLanguage = pill.dataset.language;
+            // Reload content
+            currentPage = 1;
+            currentOttPage = 1;
+            currentComingSoonPage = 1;
+            loadMovies();
+            loadOttContent();
+            loadTopRatedContent();
+            loadComingSoonContent();
+        });
+    });
+
+    // Search functionality
+    const searchInput = document.getElementById('search');
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             handleSearch();
@@ -116,9 +175,6 @@ function setupEventListeners() {
     
     // Add input event for autocomplete
     searchInput.addEventListener('input', debounce(handleAutocomplete, 300));
-    
-    // Add keyboard navigation for autocomplete
-    searchInput.addEventListener('keydown', handleAutocompleteKeydown);
     
     // Close autocomplete when clicking outside
     document.addEventListener('click', (e) => {
@@ -1037,181 +1093,88 @@ function updateOttPagination() {
 }
 
 // Debounce function to limit API calls
-function debounce(func, delay) {
+function debounce(func, wait) {
     let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
+    return function executedFunction(...args) {
+        const later = () => {
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), delay);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
 }
 
 // Handle autocomplete
-async function handleAutocomplete() {
-    const query = searchInput.value.trim();
+async function handleAutocomplete(event) {
+    const query = event.target.value.trim();
     
-    // Clear autocomplete if query is empty
-    if (!query) {
+    if (query.length < 2) {
         autocompleteResults.style.display = 'none';
         return;
     }
     
     try {
-        // Prepare parameters for API calls
-        let params = new URLSearchParams({
-            api_key: API_KEY,
-            query: query,
-            region: 'IN', // India region
-            page: 1,
-            include_adult: false
-        });
+        const response = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1&include_adult=false&region=IN`);
+        const data = await response.json();
         
-        // Add language filter if selected
-        if (currentLanguage !== 'all') {
-            params.append('with_original_language', currentLanguage);
-        }
-        
-        // Fetch movie and TV show suggestions in parallel
-        const [movieResponse, tvResponse] = await Promise.all([
-            fetch(`${BASE_URL}/search/movie?${params}`),
-            fetch(`${BASE_URL}/search/tv?${params}`)
-        ]);
-        
-        const movieData = await movieResponse.json();
-        const tvData = await tvResponse.json();
-        
-        // Combine and process results
-        const combinedResults = [
-            ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
-            ...tvData.results.map(item => ({ ...item, name: item.name, content_type: 'tv' }))
-        ];
-        
-        // Sort by popularity
-        combinedResults.sort((a, b) => b.popularity - a.popularity);
-        
-        // Display autocomplete results
-        displayAutocompleteResults(combinedResults);
-    } catch (error) {
-        console.error('Error fetching autocomplete suggestions:', error);
-    }
-}
+        // Filter results to only include movies and TV shows
+        const results = data.results
+            .filter(item => (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path)
+            .slice(0, 6);
 
-// Handle keyboard navigation for autocomplete
-function handleAutocompleteKeydown(e) {
-    // Only process if autocomplete is visible
-    if (autocompleteResults.style.display !== 'block') return;
-    
-    const items = autocompleteResults.querySelectorAll('.autocomplete-item');
-    if (items.length === 0) return;
-    
-    // Find currently selected item
-    const currentIndex = Array.from(items).findIndex(item => 
-        item.classList.contains('selected'));
-    
-    switch (e.key) {
-        case 'ArrowDown':
-            e.preventDefault();
-            // Select next item or first if none selected
-            if (currentIndex < 0 || currentIndex >= items.length - 1) {
-                // Select first item
-                if (items[0]) {
-                    items.forEach(item => item.classList.remove('selected'));
-                    items[0].classList.add('selected');
-                    items[0].scrollIntoView({ block: 'nearest' });
-                }
+        if (results.length > 0) {
+            displayAutocompleteResults(results);
             } else {
-                // Select next item
-                items.forEach(item => item.classList.remove('selected'));
-                items[currentIndex + 1].classList.add('selected');
-                items[currentIndex + 1].scrollIntoView({ block: 'nearest' });
-            }
-            break;
-            
-        case 'ArrowUp':
-            e.preventDefault();
-            // Select previous item or last if none selected
-            if (currentIndex <= 0) {
-                // Select last item
-                if (items[items.length - 1]) {
-                    items.forEach(item => item.classList.remove('selected'));
-                    items[items.length - 1].classList.add('selected');
-                    items[items.length - 1].scrollIntoView({ block: 'nearest' });
-                }
-            } else {
-                // Select previous item
-                items.forEach(item => item.classList.remove('selected'));
-                items[currentIndex - 1].classList.add('selected');
-                items[currentIndex - 1].scrollIntoView({ block: 'nearest' });
-            }
-            break;
-            
-        case 'Enter':
-            // If an item is selected, use it
-            if (currentIndex >= 0) {
-                e.preventDefault();
-                const selectedItem = items[currentIndex];
-                const title = selectedItem.querySelector('.autocomplete-title').textContent;
-                searchInput.value = title;
                 autocompleteResults.style.display = 'none';
-                handleSearch();
-            }
-            break;
-            
-        case 'Escape':
-            // Close autocomplete
+        }
+    } catch (error) {
+        console.error('Error fetching autocomplete results:', error);
             autocompleteResults.style.display = 'none';
-            break;
     }
 }
 
 // Display autocomplete results
 function displayAutocompleteResults(results) {
-    // Clear previous results
     autocompleteResults.innerHTML = '';
     
-    // Filter results to only include those with poster images
-    const resultsWithPosters = results.filter(item => item.poster_path).slice(0, 5);
-    
-    if (resultsWithPosters.length === 0) {
-        autocompleteResults.style.display = 'none';
-        return;
-    }
-    
-    // Create and append autocomplete items
-    resultsWithPosters.forEach((item, index) => {
-        const isMovie = item.content_type === 'movie';
-        const title = isMovie ? item.title : item.name;
-        const releaseDate = isMovie ? item.release_date : item.first_air_date;
-        const releaseYear = releaseDate ? new Date(releaseDate).getFullYear() : '';
-        const contentType = isMovie ? 'Movie' : 'TV Show';
+    results.forEach(item => {
+        const year = item.release_date || item.first_air_date;
+        const yearText = year ? new Date(year).getFullYear() : '';
         
-        const itemElement = document.createElement('div');
-        itemElement.classList.add('autocomplete-item');
-        // Select first item by default
-        if (index === 0) {
-            itemElement.classList.add('selected');
-        }
-        
-        itemElement.innerHTML = `
-            <img class="autocomplete-poster" src="${IMAGE_BASE_URL + 'w92' + item.poster_path}" alt="${title}">
+        const resultItem = document.createElement('div');
+        resultItem.className = 'autocomplete-item';
+        resultItem.innerHTML = `
+            <img src="${IMAGE_BASE_URL}${POSTER_SIZE}${item.poster_path}" 
+                 alt="${item.title || item.name}" 
+                 class="autocomplete-poster"
+                 onerror="this.src='placeholder-image.jpg'">
             <div class="autocomplete-info">
-                <h4 class="autocomplete-title">${title}</h4>
-                <span class="autocomplete-year">${releaseYear} ${contentType}</span>
+                <div class="autocomplete-title">${item.title || item.name}</div>
+                <div class="autocomplete-meta">
+                    ${yearText ? `
+                        <div class="autocomplete-year">
+                            <i class="fas fa-calendar-alt"></i>
+                            ${yearText}
+                        </div>
+                    ` : ''}
+                    <div class="autocomplete-language">
+                        <i class="fas fa-film"></i>
+                        ${item.media_type === 'movie' ? 'Movie' : 'TV Show'}
+                    </div>
+                </div>
             </div>
         `;
         
-        // Add click event to select this item
-        itemElement.addEventListener('click', () => {
-            searchInput.value = title;
+        resultItem.addEventListener('click', () => {
+            searchInput.value = item.title || item.name;
             autocompleteResults.style.display = 'none';
             handleSearch();
         });
         
-        autocompleteResults.appendChild(itemElement);
+        autocompleteResults.appendChild(resultItem);
     });
     
-    // Show the autocomplete dropdown
     autocompleteResults.style.display = 'block';
 }
 
@@ -1243,102 +1206,58 @@ async function loadTopRatedContent() {
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0];
         
-        // Prepare common parameters for all-time top rated
-        const allTimeParams = {
+        // Prepare parameters for trending content
+        const trendingParams = {
             api_key: API_KEY,
             page: 1,
             region: 'IN',
             with_origin_country: 'IN',
             sort_by: 'vote_average.desc',
-            'vote_count.gte': 50, // Further lowered to get more results
-            'vote_average.gte': 7.0, // Further lowered to get more results
+            'vote_count.gte': 20,
+            'vote_average.gte': 6.0,
+            'primary_release_date.gte': sixMonthsAgoStr,
+            'first_air_date.gte': sixMonthsAgoStr,
             'include_adult': false
         };
         
-        // Prepare common parameters for recent top rated
-        const recentParams = {
-            api_key: API_KEY,
-            page: 1,
-            region: 'IN',
-            with_origin_country: 'IN',
-            sort_by: 'vote_average.desc',
-            'vote_count.gte': 20, // Further lowered to get more results
-            'vote_average.gte': 6.0, // Further lowered to get more results
-            'primary_release_date.gte': sixMonthsAgoStr, // Movies from last 6 months
-            'first_air_date.gte': sixMonthsAgoStr, // TV shows from last 6 months
-            'include_adult': false
-        };
-        
-        // Create movie and TV parameters for all-time
-        let allTimeMovieParams = new URLSearchParams(allTimeParams);
-        let allTimeTvParams = new URLSearchParams(allTimeParams);
-        
-        // Create movie and TV parameters for recent
-        let recentMovieParams = new URLSearchParams(recentParams);
-        let recentTvParams = new URLSearchParams(recentParams);
+        // Create movie and TV parameters for trending
+        let trendingMovieParams = new URLSearchParams(trendingParams);
+        let trendingTvParams = new URLSearchParams(trendingParams);
         
         // Add language filter if selected
         if (currentLanguage !== 'all') {
-            allTimeMovieParams.append('with_original_language', currentLanguage);
-            allTimeTvParams.append('with_original_language', currentLanguage);
-            recentMovieParams.append('with_original_language', currentLanguage);
-            recentTvParams.append('with_original_language', currentLanguage);
+            trendingMovieParams.append('with_original_language', currentLanguage);
+            trendingTvParams.append('with_original_language', currentLanguage);
         }
         
-        // Fetch all-time top rated movies and TV shows
-        const [allTimeMovieResponse, allTimeTvResponse, recentMovieResponse, recentTvResponse] = await Promise.all([
-            fetch(`${BASE_URL}/discover/movie?${allTimeMovieParams}`),
-            fetch(`${BASE_URL}/discover/tv?${allTimeTvParams}`),
-            fetch(`${BASE_URL}/discover/movie?${recentMovieParams}`),
-            fetch(`${BASE_URL}/discover/tv?${recentTvParams}`)
+        // Fetch trending movies and TV shows
+        const [movieResponse, tvResponse] = await Promise.all([
+            fetch(`${BASE_URL}/discover/movie?${trendingMovieParams}`),
+            fetch(`${BASE_URL}/discover/tv?${trendingTvParams}`)
         ]);
         
-        const allTimeMovieData = await allTimeMovieResponse.json();
-        const allTimeTvData = await allTimeTvResponse.json();
-        const recentMovieData = await recentMovieResponse.json();
-        const recentTvData = await recentTvResponse.json();
+        const movieData = await movieResponse.json();
+        const tvData = await tvResponse.json();
         
-        console.log('API Response - All Time Movies:', allTimeMovieData.results.length);
-        console.log('API Response - All Time TV:', allTimeTvData.results.length);
-        console.log('API Response - Recent Movies:', recentMovieData.results.length);
-        console.log('API Response - Recent TV:', recentTvData.results.length);
-        
-        // Combine all-time results and add content type and category
-        let allTimeResults = [
-            ...allTimeMovieData.results.map(item => ({ ...item, content_type: 'movie', category: 'all-time' })),
-            ...allTimeTvData.results.map(item => ({ ...item, content_type: 'tv', category: 'all-time' }))
+        // Combine results and add content type
+        let trendingResults = [
+            ...movieData.results.map(item => ({ ...item, content_type: 'movie' })),
+            ...tvData.results.map(item => ({ ...item, content_type: 'tv' }))
         ];
         
-        // Combine recent results and add content type and category
-        let recentResults = [
-            ...recentMovieData.results.map(item => ({ ...item, content_type: 'movie', category: 'recent' })),
-            ...recentTvData.results.map(item => ({ ...item, content_type: 'tv', category: 'recent' }))
-        ];
+        // Sort by vote average
+        trendingResults.sort((a, b) => b.vote_average - a.vote_average);
         
-        // Sort each category by vote average
-        allTimeResults.sort((a, b) => b.vote_average - a.vote_average);
-        recentResults.sort((a, b) => b.vote_average - a.vote_average);
+        // Take top 8 trending items
+        const topTrending = trendingResults.slice(0, 8);
         
-        console.log('Combined All Time Results:', allTimeResults.length);
-        console.log('Combined Recent Results:', recentResults.length);
-        
-        // Take top 4 from each category
-        const topAllTime = allTimeResults.slice(0, 4);
-        const topRecent = recentResults.slice(0, 4);
-        
-        console.log('Top All Time (after slice):', topAllTime.length);
-        console.log('Top Recent (after slice):', topRecent.length);
-        
-        // Combine for final display
-        const combinedResults = [...topRecent, ...topAllTime];
-        
-        if (combinedResults.length > 0) {
-            displayTopRatedContent(combinedResults);
+        if (topTrending.length > 0) {
+            displayTopRatedContent(topTrending);
         } else {
             showNoTopRatedResults();
         }
     } catch (error) {
-        console.error('Error loading top rated content:', error);
+        console.error('Error loading trending content:', error);
         showTopRatedError();
     }
 }
@@ -1370,55 +1289,20 @@ function displayTopRatedContent(content) {
     });
     
     if (contentWithPosters.length > 0) {
-        // First add a heading for recent top rated
-        topRatedGrid.innerHTML = `
-            <div class="top-rated-category">
-                <h3>Recent Hits <span class="top-rated-subtitle">Top rated from the last 6 months</span></h3>
-            </div>
-        `;
+        // Initialize the grid
+        topRatedGrid.innerHTML = '';
         
-        // Add recent content first
-        const recentContent = contentWithPosters.filter(item => item.category === 'recent');
-        console.log('Recent content count:', recentContent.length); // Debug log
-        
-        recentContent.forEach(item => {
+        // Add trending content
+        contentWithPosters.forEach(item => {
             let contentCard;
             if (item.content_type === 'movie') {
-                contentCard = createTopRatedCard(item, 'recent');
+                contentCard = createTopRatedCard(item, 'trending');
             } else {
-                // Convert TV show data to match the format expected by createOttCard
                 const tvItem = {
                     ...item,
-                    watch_providers: [] // No watch providers for top rated section
+                    watch_providers: []
                 };
-                contentCard = createTopRatedCard(tvItem, 'recent');
-            }
-            topRatedGrid.appendChild(contentCard);
-        });
-        
-        // Add a heading for all-time classics
-        const allTimeHeading = document.createElement('div');
-        allTimeHeading.className = 'top-rated-category';
-        allTimeHeading.innerHTML = `
-            <h3>All-Time Classics <span class="top-rated-subtitle">Highest rated of all time</span></h3>
-        `;
-        topRatedGrid.appendChild(allTimeHeading);
-        
-        // Add all-time content
-        const allTimeContent = contentWithPosters.filter(item => item.category === 'all-time');
-        console.log('All-time content count:', allTimeContent.length); // Debug log
-        
-        allTimeContent.forEach(item => {
-            let contentCard;
-            if (item.content_type === 'movie') {
-                contentCard = createTopRatedCard(item, 'all-time');
-            } else {
-                // Convert TV show data to match the format expected by createOttCard
-                const tvItem = {
-                    ...item,
-                    watch_providers: [] // No watch providers for top rated section
-                };
-                contentCard = createTopRatedCard(tvItem, 'all-time');
+                contentCard = createTopRatedCard(tvItem, 'trending');
             }
             topRatedGrid.appendChild(contentCard);
         });
@@ -1550,7 +1434,7 @@ function showTopRatedLoading() {
     topRatedGrid.innerHTML = `
         <div class="loading">
             <i class="fas fa-spinner fa-spin"></i>
-            <p>Loading top rated content...</p>
+            <p>Loading trending content...</p>
         </div>
     `;
 }
@@ -1570,7 +1454,7 @@ function showNoTopRatedResults() {
     topRatedGrid.innerHTML = `
         <div class="no-results">
             <i class="fas fa-film"></i>
-            <p>No top rated movies or TV shows found. Try a different language filter.</p>
+            <p>No trending content found. Try a different language filter.</p>
         </div>
     `;
 }
@@ -1590,7 +1474,7 @@ function showTopRatedError() {
     topRatedGrid.innerHTML = `
         <div class="error">
             <i class="fas fa-exclamation-circle"></i>
-            <p>Failed to load top rated content. Please try again later.</p>
+            <p>Failed to load trending content. Please try again later.</p>
         </div>
     `;
 }
@@ -1605,267 +1489,71 @@ function showComingSoonError() {
     `;
 }
 
-// Setup Mobile Navigation
+// Set up mobile navigation
 function setupMobileNavigation() {
-    // Get mobile elements
-    const mobileHomeBtn = document.getElementById('mobile-home-btn');
-    const mobileSearchBtn = document.getElementById('mobile-search-btn');
-    const mobileFilterBtn = document.getElementById('mobile-filter-btn');
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-
-    const mobileSearchPanel = document.querySelector('.mobile-search-panel');
-    const mobileFilterPanel = document.querySelector('.mobile-filter-panel');
-    const mobileMenuPanel = document.querySelector('.mobile-menu-panel');
-
-    console.log('Mobile elements:', {
-        mobileHomeBtn,
-        mobileSearchBtn,
-        mobileFilterBtn,
-        mobileMenuBtn,
-        mobileSearchPanel,
-        mobileFilterPanel,
-        mobileMenuPanel
-    });
-
-    const mobileSearchInput = document.getElementById('mobile-search-input');
-    const mobileSearchSubmit = document.getElementById('mobile-search-submit');
-    const mobileAutocompleteResults = document.getElementById('mobile-autocomplete-results');
-
-    const mobileLanguageSelect = document.getElementById('mobile-language-select');
-    const mobileContentTypeSelect = document.getElementById('mobile-content-type-select');
-    const mobileOttProviderSelect = document.getElementById('mobile-ott-provider-select');
-
-    const panelCloseButtons = document.querySelectorAll('.panel-close');
-    console.log('Panel close buttons:', panelCloseButtons);
-
-    // Function to close all panels
-    function closeAllPanels() {
-        console.log('Closing all panels');
-        mobileSearchPanel.classList.remove('active');
-        mobileFilterPanel.classList.remove('active');
-        mobileMenuPanel.classList.remove('active');
-        
-        // Reset active state on nav items
-        document.querySelectorAll('.mobile-nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Clear search inputs when panels are closed
-        const mobileSearchInput = document.getElementById('mobile-search-input');
-        const desktopSearchInput = document.getElementById('search');
-        
-        if (mobileSearchInput) {
-            mobileSearchInput.value = '';
-        }
-        
-        if (desktopSearchInput) {
-            desktopSearchInput.value = '';
-        }
-    }
+    const navItems = document.querySelectorAll('.mobile-nav-item');
     
-    // Home button - close all panels
-    if (mobileHomeBtn) {
-        mobileHomeBtn.addEventListener('click', () => {
-            console.log('Home button clicked');
-            closeAllPanels();
-            mobileHomeBtn.classList.add('active');
-            window.scrollTo(0, 0);
-            window.location.reload();
-        });
-    }
-    
-    // Search button - toggle search panel
-    if (mobileSearchBtn && mobileSearchPanel) {
-        mobileSearchBtn.addEventListener('click', () => {
-            console.log('Search button clicked');
-            closeAllPanels();
-            mobileSearchPanel.classList.add('active');
-            mobileSearchBtn.classList.add('active');
-            mobileSearchInput.focus();
-        });
-    }
-    
-    // Filter button - toggle filter panel
-    if (mobileFilterBtn && mobileFilterPanel) {
-        mobileFilterBtn.addEventListener('click', () => {
-            console.log('Filter button clicked');
-            closeAllPanels();
-            mobileFilterPanel.classList.add('active');
-            mobileFilterBtn.classList.add('active');
-        });
-    }
-    
-    // Menu button - toggle menu panel
-    if (mobileMenuBtn && mobileMenuPanel) {
-        mobileMenuBtn.addEventListener('click', () => {
-            console.log('Menu button clicked');
-            closeAllPanels();
-            mobileMenuPanel.classList.add('active');
-            mobileMenuBtn.classList.add('active');
-        });
-    }
-    
-    // Close buttons for panels
-    if (panelCloseButtons) {
-        panelCloseButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                console.log('Panel close button clicked');
-                closeAllPanels();
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Handle home button click
+            if (item.id === 'mobile-home-btn') {
+                e.preventDefault();
                 
-                // Clear the mobile search input when closing panels
-                const mobileSearchInput = document.getElementById('mobile-search-input');
-                if (mobileSearchInput) {
-                    mobileSearchInput.value = '';
-                }
-            });
-        });
-    }
-    
-    // Mobile menu items
-    const mobileMenuItems = document.querySelectorAll('.mobile-menu-item');
-    if (mobileMenuItems) {
-        mobileMenuItems.forEach(item => {
-            item.addEventListener('click', () => {
-                closeAllPanels();
-                
-                // Update active state
-                mobileMenuItems.forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-            });
-        });
-    }
-    
-    // Mobile search functionality
-    if (mobileSearchSubmit && mobileSearchInput) {
-        mobileSearchSubmit.addEventListener('click', () => {
-            const query = mobileSearchInput.value.trim();
-            if (query) {
-                searchQuery = query;
-                isSearching = true;
+                // Reset all filters and states
+                currentLanguage = 'all';
                 currentPage = 1;
                 currentOttPage = 1;
+                currentComingSoonPage = 1;
+                isSearching = false;
+                searchQuery = '';
                 
-                // Load both movies and OTT content with the search query
-                loadMovies();
-                loadOttContent();
+                // Reset language pills
+                const languagePills = document.querySelectorAll('.language-pill');
+                languagePills.forEach(pill => {
+                    pill.classList.remove('active');
+                    if (pill.dataset.language === 'all') {
+                        pill.classList.add('active');
+                    }
+                });
                 
-                // Close panel and scroll to top
-                closeAllPanels();
-                window.scrollTo(0, 0);
-            }
-        });
-        
-        mobileSearchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                mobileSearchSubmit.click();
-            }
-        });
-        
-        // Mobile autocomplete
-        mobileSearchInput.addEventListener('input', debounce(() => {
-            const query = mobileSearchInput.value.trim();
-            if (query.length >= 2) {
-                fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&page=1&include_adult=false&region=IN`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.results && data.results.length > 0) {
-                            displayMobileAutocompleteResults(data.results.slice(0, 5));
-                        } else {
-                            mobileAutocompleteResults.style.display = 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error with autocomplete:', error);
-                        mobileAutocompleteResults.style.display = 'none';
-                    });
-            } else {
-                mobileAutocompleteResults.style.display = 'none';
-            }
-        }, 300));
-    }
-    
-    // Mobile filter functionality
-    if (mobileLanguageSelect) {
-        mobileLanguageSelect.addEventListener('change', () => {
-            currentLanguage = mobileLanguageSelect.value;
-            languageSelect.value = currentLanguage; // Sync with desktop
-            currentPage = 1;
-            currentOttPage = 1;
-            currentComingSoonPage = 1;
-            
-            // Reload all content sections
-            loadMovies();
-            loadOttContent();
-            loadTopRatedContent();
-            loadComingSoonContent();
-            
-            // Close panel
-            closeAllPanels();
-        });
-    }
-    
-    if (mobileContentTypeSelect) {
-        mobileContentTypeSelect.addEventListener('change', () => {
-            currentContentType = mobileContentTypeSelect.value;
-            contentTypeSelect.value = currentContentType; // Sync with desktop
-            currentOttPage = 1;
-            loadOttContent();
-            
-            // Close panel
-            closeAllPanels();
-        });
-    }
-    
-    if (mobileOttProviderSelect) {
-        mobileOttProviderSelect.addEventListener('change', () => {
-            currentOttProvider = mobileOttProviderSelect.value;
-            ottProviderSelect.value = currentOttProvider; // Sync with desktop
-            currentOttPage = 1;
-            loadOttContent();
-            
-            // Close panel
-            closeAllPanels();
-        });
-    }
-}
-
-// Function to display mobile autocomplete results
-function displayMobileAutocompleteResults(results) {
-    mobileAutocompleteResults.innerHTML = '';
-    mobileAutocompleteResults.style.display = 'block';
-    
-    results.forEach(result => {
-        if ((result.media_type === 'movie' || result.media_type === 'tv') && result.poster_path) {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'autocomplete-item';
-            
-            const title = result.media_type === 'movie' ? result.title : result.name;
-            const year = result.media_type === 'movie' 
-                ? (result.release_date ? new Date(result.release_date).getFullYear() : 'Unknown')
-                : (result.first_air_date ? new Date(result.first_air_date).getFullYear() : 'Unknown');
-            
-            resultItem.innerHTML = `
-                <img src="${IMAGE_BASE_URL}w92${result.poster_path}" alt="${title}">
-                <div>
-                    <div class="autocomplete-title">${title}</div>
-                    <div class="autocomplete-info">${year} • ${result.media_type === 'movie' ? 'Movie' : 'TV Show'}</div>
-                </div>
-            `;
-            
-            resultItem.addEventListener('click', () => {
-                mobileSearchInput.value = title;
-                mobileAutocompleteResults.style.display = 'none';
-                
-                if (result.media_type === 'movie') {
-                    openMovieDetails(result.id);
-                } else {
-                    openOttDetails(result.id, 'tv');
+                // Clear search input
+                const searchInput = document.getElementById('search');
+                if (searchInput) {
+                    searchInput.value = '';
                 }
                 
-                closeAllPanels();
-            });
+                // Reset content type and provider filters
+                if (contentTypeSelect) contentTypeSelect.value = 'all';
+                if (ottProviderSelect) ottProviderSelect.value = 'all';
+                
+                // Reload all content
+                loadOttContent();
+                loadMovies();
+                loadTopRatedContent();
+                loadComingSoonContent();
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+                return;
+            }
             
-            mobileAutocompleteResults.appendChild(resultItem);
-        }
+            // Remove active class from all items
+            navItems.forEach(nav => nav.classList.remove('active'));
+            // Add active class to clicked item
+            item.classList.add('active');
+            
+            // Smooth scroll to section if it has a hash link
+            if (item.getAttribute('href') && item.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
+                const targetId = item.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 70,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
     });
 }

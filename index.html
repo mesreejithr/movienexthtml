@@ -17,38 +17,35 @@
 </head>
 <body>
     <header class="cinematic-header">
-        <div class="header-backdrop"></div>
         <div class="container">
             <div class="header-top">
                 <div class="logo-container">
                     <h1>
                         <a href="/" onclick="window.location.reload(); return false;"><img src="MovieNext-Trans-Logo.png" alt="MovieNext Logo" class="logo-image"></a>
                     </h1>
-                    <span class="tagline">Discover Your Next Favorite</span>
                 </div>
-                <div class="language-filter desktop-only">
-                    <select id="language-select">
-                        <option value="all">All Indian Languages</option>
-                        <option value="hi">Hindi</option>
-                        <option value="ta">Tamil</option>
-                        <option value="te">Telugu</option>
-                        <option value="ml">Malayalam</option>
-                        <option value="kn">Kannada</option>
-                        <option value="bn">Bengali</option>
-                    </select>
+                <div class="search-container">
+                    <div class="search-wrapper">
+                        <div class="search-icon"><i class="fas fa-search"></i></div>
+                        <input type="text" id="search" placeholder="Search movies and shows...">
+                    </div>
+                    <div id="autocomplete-results" class="autocomplete-results"></div>
                 </div>
             </div>
-            <div class="search-container">
-                <div class="search-icon"><i class="fas fa-search"></i></div>
-                <input type="text" id="search" placeholder="Search for movies, TV shows & web series...">
-                <button id="search-btn">Search</button>
-                <div id="autocomplete-results" class="autocomplete-results"></div>
-            </div>
-            <div class="header-categories">
-                <a href="#ott-section" class="category-link active"><i class="fas fa-tv"></i> Streaming</a>
-                <a href="#movies-section" class="category-link"><i class="fas fa-film"></i> In Theatres</a>
-                <a href="#top-rated-section" class="category-link"><i class="fas fa-star"></i> Top Rated</a>
-                <a href="#coming-soon-section" class="category-link"><i class="fas fa-calendar-alt"></i> Coming Soon</a>
+            <nav class="header-nav">
+                <a href="#ott-section" class="nav-link"><i class="fas fa-tv"></i> Latest on OTT</a>
+                <a href="#movies-section" class="nav-link"><i class="fas fa-film"></i> Theatre</a>
+                <a href="#top-rated-section" class="nav-link"><i class="fas fa-fire"></i> Trending</a>
+                <a href="#coming-soon-section" class="nav-link"><i class="fas fa-calendar"></i> Coming Soon</a>
+            </nav>
+            <div class="language-filter">
+                <button class="language-pill active" data-language="all">All Languages</button>
+                <button class="language-pill" data-language="hi">Hindi</button>
+                <button class="language-pill" data-language="ta">Tamil</button>
+                <button class="language-pill" data-language="te">Telugu</button>
+                <button class="language-pill" data-language="ml">Malayalam</button>
+                <button class="language-pill" data-language="bn">Bengali</button>
+                <button class="language-pill" data-language="kn">Kannada</button>
             </div>
         </div>
     </header>
@@ -57,8 +54,11 @@
         <div class="container">
             <!-- OTT Section -->
             <section id="ott-section" class="content-section">
-                <div class="ott-heading">
-                    <h2>Latest on OTT</h2>
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-tv"></i>
+                        <h2>Latest on OTT</h2>
+                    </div>
                     <div class="ott-filters desktop-only">
                         <select id="content-type-select">
                             <option value="all">All Content</option>
@@ -96,8 +96,11 @@
 
             <!-- Theatre Movies Section -->
             <section id="movies-section" class="content-section">
-                <div class="movies-heading">
-                    <h2>Latest in Theatres</h2>
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-film"></i>
+                        <h2>Latest in Theatres</h2>
+                    </div>
                 </div>
                 <div id="movies-grid" class="movies-grid">
                     <!-- Movies will be loaded here dynamically -->
@@ -118,15 +121,17 @@
 
             <!-- Top Rated Section -->
             <section id="top-rated-section" class="content-section">
-                <div class="movies-heading">
-                    <h2>Top Rated</h2>
-                    <p class="section-subtitle">Curated selection of the highest-rated Indian movies and shows</p>
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-fire"></i>
+                        <h2>Trending</h2>
+                    </div>
                 </div>
                 <div id="top-rated-grid" class="movies-grid">
                     <!-- Top rated content will be loaded here dynamically -->
                     <div class="loading">
                         <i class="fas fa-spinner fa-spin"></i>
-                        <p>Loading top rated content...</p>
+                        <p>Loading trending content...</p>
                     </div>
                 </div>
             </section>
@@ -136,8 +141,11 @@
 
             <!-- Coming Soon Section -->
             <section id="coming-soon-section" class="content-section">
-                <div class="movies-heading">
-                    <h2>Coming Soon</h2>
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-calendar"></i>
+                        <h2>Coming Soon</h2>
+                    </div>
                 </div>
                 <div id="coming-soon-grid" class="movies-grid">
                     <!-- Coming soon content will be loaded here dynamically -->
@@ -183,74 +191,22 @@
 
     <!-- Mobile Bottom Navigation -->
     <div class="mobile-bottom-nav">
-        <div class="mobile-nav-item" id="mobile-home-btn">
+        <a href="#" class="mobile-nav-item active" id="mobile-home-btn">
             <i class="fas fa-home"></i>
             <span>Home</span>
-        </div>
-        <div class="mobile-nav-item" id="mobile-search-btn">
-            <i class="fas fa-search"></i>
-            <span>Search</span>
-        </div>
-        <div class="mobile-nav-item" id="mobile-filter-btn">
-            <i class="fas fa-filter"></i>
-            <span>Filter</span>
-        </div>
-        <div class="mobile-nav-item" id="mobile-menu-btn">
-            <i class="fas fa-bars"></i>
-            <span>Menu</span>
-        </div>
-    </div>
-
-    <!-- Mobile Search Panel -->
-    <div class="mobile-search-panel">
-        <div class="panel-close">Close <i class="fas fa-times"></i></div>
-        <input type="text" id="mobile-search-input" placeholder="Search for movies, TV shows & web series...">
-        <button id="mobile-search-submit">Search</button>
-        <div id="mobile-autocomplete-results" class="autocomplete-results"></div>
-    </div>
-
-    <!-- Mobile Filter Panel -->
-    <div class="mobile-filter-panel">
-        <div class="panel-close">Close <i class="fas fa-times"></i></div>
-        
-        <div class="filter-label">Select Language</div>
-        <select id="mobile-language-select">
-            <option value="all">All Indian Languages</option>
-            <option value="hi">Hindi</option>
-            <option value="ta">Tamil</option>
-            <option value="te">Telugu</option>
-            <option value="ml">Malayalam</option>
-            <option value="kn">Kannada</option>
-            <option value="bn">Bengali</option>
-        </select>
-        
-        <div class="filter-label">Content Type</div>
-        <select id="mobile-content-type-select">
-            <option value="all">All Content</option>
-            <option value="movie">Movies</option>
-            <option value="tv">TV Shows & Web Series</option>
-        </select>
-        
-        <div class="filter-label">Streaming Platform</div>
-        <select id="mobile-ott-provider-select">
-            <option value="all">All Platforms</option>
-            <option value="8">Netflix</option>
-            <option value="119">Amazon Prime</option>
-            <option value="337">Disney+</option>
-            <option value="122">Hotstar</option>
-            <option value="2336">JioHotstar</option>
-            <option value="237">SonyLIV</option>
-            <option value="232">ZEE5</option>
-        </select>
-    </div>
-
-    <!-- Mobile Menu Panel -->
-    <div class="mobile-menu-panel">
-        <div class="panel-close">Close <i class="fas fa-times"></i></div>
-        <a href="#ott-section" class="mobile-menu-item active"><i class="fas fa-tv"></i> Streaming</a>
-        <a href="#movies-section" class="mobile-menu-item"><i class="fas fa-film"></i> In Theatres</a>
-        <a href="#top-rated-section" class="mobile-menu-item"><i class="fas fa-star"></i> Top Rated</a>
-        <a href="#coming-soon-section" class="mobile-menu-item"><i class="fas fa-calendar-alt"></i> Coming Soon</a>
+        </a>
+        <a href="#ott-section" class="mobile-nav-item" id="mobile-ott-btn">
+            <i class="fas fa-tv"></i>
+            <span>OTT</span>
+        </a>
+        <a href="#movies-section" class="mobile-nav-item" id="mobile-theatre-btn">
+            <i class="fas fa-film"></i>
+            <span>Theatre</span>
+        </a>
+        <a href="#top-rated-section" class="mobile-nav-item" id="mobile-trending-btn">
+            <i class="fas fa-fire"></i>
+            <span>Trending</span>
+        </a>
     </div>
 
     <script src="script.js"></script>
